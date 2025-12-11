@@ -1,0 +1,41 @@
+{
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "explicit"
+  },
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/.git": true,
+    "**/data": true,
+    "**/*.backup": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/data": true,
+    "**/*.backup": true
+  },
+  "files.associations": {
+    "*.js": "javascript",
+    "*.json": "jsonc"
+  },
+  "javascript.preferences.quoteStyle": "single",
+  "css.validate": true,
+  "html.format.wrapLineLength": 120,
+  "[javascript]": {
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true
+  },
+  "[css]": {
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true
+  },
+  "[html]": {
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true
+  },
+  "[json]": {
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true
+  }
+}
