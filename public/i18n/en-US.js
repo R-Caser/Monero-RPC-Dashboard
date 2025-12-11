@@ -1,0 +1,132 @@
+// English Translation
+registerTranslation('en-US', {
+  _meta: {
+    code: 'en-US',
+    name: 'English',
+    flag: '🇺🇸'
+  },
+  
+  // Header
+  'app.title': 'Monero RPC Dashboard',
+  'header.status.connecting': 'Connecting...',
+  'header.status.connected': 'Connected',
+  'header.status.disconnected': 'Disconnected',
+  'header.status.error': 'Error',
+  'header.config': 'Configuration',
+  
+  // Configuration Panel
+  'config.title': 'RPC Node Configuration',
+  'config.host': 'Host / IP:',
+  'config.port': 'Port:',
+  'config.https': 'Use HTTPS',
+  'config.auth': 'Requires Authentication',
+  'config.username': 'Username:',
+  'config.password': 'Password:',
+  'config.test': 'Test Connection',
+  'config.save': 'Save and Activate',
+  'config.saved': 'Saved Configurations',
+  'config.loading': 'Loading...',
+  'config.none': 'No saved configurations.',
+  'config.active': 'ACTIVE',
+  'config.id': 'ID:',
+  'config.auth.yes': 'Yes',
+  'config.auth.no': 'No',
+  'config.created': 'Created:',
+  'config.activate': 'Activate',
+  'config.edit': 'Edit',
+  'config.delete': 'Delete',
+  'config.test.running': 'Testing connection...',
+  'config.test.success': 'Connection successful!',
+  'config.test.network': 'Network:',
+  'config.test.height': 'Height:',
+  'config.test.error': 'Error:',
+  'config.test.required': 'Host and port are required',
+  'config.save.success': 'Configuration saved and activated successfully!',
+  'config.activate.confirm': 'Do you want to activate this configuration?',
+  'config.activate.success': 'Configuration activated!',
+  'config.delete.confirm': 'Are you sure you want to delete this configuration?',
+  'config.delete.success': 'Configuration deleted!',
+  
+  // Settings
+  'settings.title': 'General Settings',
+  'settings.autorefresh': 'Enable Network Information auto-refresh',
+  'settings.interval': 'Interval (seconds):',
+  'settings.intervalhelp': 'Between 5 and 300 seconds',
+  
+  // Network Info Section
+  'network.title': 'Network Information',
+  'network.height': 'Blockchain Height:',
+  'network.blockcount': 'Block Count:',
+  'network.connections': 'Connections:',
+  'network.difficulty': 'Difficulty:',
+  'network.version': 'Version:',
+  'network.sync': 'Sync Status:',
+  'network.sync.synced': '✅ Synchronized',
+  'network.sync.syncing': '⏳ Synchronizing...',
+  'network.refresh': 'Refresh',
+  
+  // Details Section
+  'details.title': 'Additional Information',
+  'details.freespace': 'Free Space:',
+  'details.dbsize': 'Database Size:',
+  'details.txcount': 'Total Transactions:',
+  'details.txpool': 'TX in Pool:',
+  'details.uptime': 'Node Uptime:',
+  'details.update': 'Update:',
+  'details.update.available': '⚠️ Available',
+  'details.update.uptodate': '✅ Up to Date',
+  
+  // Block Visualization Section
+  'blockvis.title': 'Block Visualization',
+  'blockvis.height': 'Blockchain Height:',
+  'blockvis.txpool': 'TX Pending:',
+  
+  // Block Search Section
+  'block.title': 'Block Search',
+  'block.search.placeholder': 'Enter block height or hash...',
+  'block.search.button': 'Search',
+  'block.found': 'Block Found',
+  'block.error': 'Error searching for block',
+  'block.error.input': 'Enter a hash or block height',
+  'block.height': 'Height:',
+  'block.hash': 'Hash:',
+  'block.timestamp': 'Timestamp:',
+  'block.size': 'Size:',
+  'block.transactions': 'Transactions:',
+  'block.reward': 'Reward:',
+  
+  // Fee Estimate Section
+  'fee.title': '💰 Fee Estimate',
+  'fee.button': 'Get Fee Estimate',
+  'fee.result': 'Fee Estimate',
+  'fee.error': 'Error loading fee estimate',
+  
+  // Transaction Pool Section
+  'txpool.title': 'Transaction Pool',
+  'txpool.load': 'Load Pending Transactions',
+  'txpool.result': 'Transaction Pool',
+  'txpool.pending': 'Pending transactions:',
+  'txpool.count': 'Transactions in pool:',
+  'txpool.size': 'Total size:',
+  'txpool.error': 'Error loading transaction pool',
+  
+  // Custom RPC Section
+  'rpc.title': 'Custom RPC Call',
+  'rpc.method': 'Method:',
+  'rpc.method.placeholder': 'e.g., get_block_count',
+  'rpc.params': 'Parameters (JSON):',
+  'rpc.execute': 'Execute',
+  'rpc.result': 'RPC Result',
+  'rpc.error.method': 'Enter an RPC method',
+  'rpc.error.params': 'Invalid JSON parameters',
+  'rpc.error.execution': 'Error executing RPC call',
+  
+  // Common
+  'common.error': 'Error:',
+  'common.error.generic': '❌ Error:',
+  'common.loading': 'Loading...',
+  'common.error.generic': '❌ Error:',
+  'common.loading': 'Loading...',
+  'common.bytes': 'bytes',
+  'common.authentication': 'Authentication:',
+});

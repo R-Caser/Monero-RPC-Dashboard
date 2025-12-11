@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Monero RPC Dashboard</title>
+  <!-- CSS Modules -->
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/header.css">
+  <link rel="stylesheet" href="css/cards.css">
+  <link rel="stylesheet" href="css/forms.css">
+  <link rel="stylesheet" href="css/info-grid.css">
+  <link rel="stylesheet" href="css/config.css">
+  <link rel="stylesheet" href="css/block-visualization.css">
+  <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body data-theme="dark">
+  <div class="container">
+    <header>
+      <div class="header-title-section">
+        <h1 data-i18n="app.title">🔗 Monero RPC Dashboard</h1>
+        <div class="version-info" id="versionInfo">
+          <span class="version-text" id="versionText">-</span>
+          <span class="update-icon" id="updateIcon" style="display: none;" title="Update Available">⚠️</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <div class="theme-language-controls">
+          <button class="theme-toggle" onclick="toggleTheme()" id="themeToggle" title="Toggle Theme">
+            🌙
+          </button>
+          <select class="language-select" id="languageSelect" onchange="changeLanguage(this.value)">
+            <option value="">Loading...</option>
+          </select>
+        </div>
+        <div class="status-indicator" id="statusIndicator">
+          <span class="dot"></span>
+          <span id="statusText" data-i18n="header.status.connecting">Connessione...</span>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="toggleConfigPanel()" data-i18n="header.config">⚙️ Configurazione</button>
+      </div>
+    </header>
+
+    <!-- Pannello Configurazione (nascosto di default) -->
+    <div id="configPanel" class="config-panel" style="display: none;">
+      <div class="card">
+        <div class="config-header">
+          <h2 data-i18n="config.title">⚙️ Configurazione Nodo RPC</h2>
+          <button class="btn btn-close" onclick="toggleConfigPanel()">✕</button>
+        </div>
+        
+        <div class="config-content">
+          <!-- Form Configurazione -->
+          <div class="config-form">
+            <div class="form-group">
+              <label for="configHost" data-i18n="config.host">Host / IP:</label>
+              <input type="text" id="configHost" class="input" placeholder="192.168.100.29">
+            </div>
+            
+            <div class="form-group">
+              <label for="configPort" data-i18n="config.port">Porta:</label>
+              <input type="number" id="configPort" class="input" placeholder="18081">
+            </div>
+            
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="configHttps" onchange="toggleHttpsInfo()">
+                <span data-i18n="config.https">Usa HTTPS</span>
+              </label>
+            </div>
+            
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="configAuth" onchange="toggleAuthFields()">
+                <span data-i18n="config.auth">Richiede Autenticazione</span>
+              </label>
+            </div>
+            
+            <div id="authFields" style="display: none;">
+              <div class="form-group">
+                <label for="configUsername" data-i18n="config.username">Username:</label>
+                <input type="text" id="configUsername" class="input" placeholder="username">
+              </div>
+              
+              <div class="form-group">
+                <label for="configPassword" data-i18n="config.password">Password:</label>
+                <input type="password" id="configPassword" class="input" placeholder="password">
+              </div>
+            </div>
+            
+            <div class="config-actions">
+              <button class="btn btn-secondary" onclick="testConnection()" data-i18n="config.test">🔍 Testa Connessione</button>
+              <button class="btn btn-primary" onclick="saveConfiguration()" data-i18n="config.save">💾 Salva e Attiva</button>
+            </div>
+            
+            <div id="configTestResult" class="result-container"></div>
+          </div>
+          
+          <!-- Impostazioni Auto-refresh -->
+          <div class="config-section">
+            <h3 data-i18n="settings.title">⚙️ Impostazioni Generali</h3>
+            
+            <div class="form-group">
+              <label>
+                <input type="checkbox" id="autoRefreshEnabled" onchange="updateAutoRefreshSettings()">
+                <span data-i18n="settings.autorefresh">Abilita auto-refresh Network Information</span>
+              </label>
+            </div>
+            
+            <div class="form-group" id="refreshIntervalGroup">
+              <label for="refreshInterval" data-i18n="settings.interval">Intervallo (secondi):</label>
+              <input type="number" id="refreshInterval" class="input" min="5" max="300" value="30" onchange="updateAutoRefreshSettings()">
+              <small data-i18n="settings.intervalhelp">Tra 5 e 300 secondi</small>
+            </div>
+          </div>
+          
+          <!-- Lista Configurazioni Salvate -->
+          <div class="config-list">
+            <h3 data-i18n="config.saved">Configurazioni Salvate</h3>
+            <div id="savedConfigs" class="saved-configs">
+              <span data-i18n="config.loading">Caricamento...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <main>
+      <!-- Sezione Info Generali -->
+      <section class="card collapsible" data-section="network">
+        <div class="card-header" onclick="toggleSection('network')">
+          <h2 data-i18n="network.title">📊 Informazioni Rete</h2>
+          <div class="card-preview" id="networkPreview">
+            <span class="preview-item">
+              <span class="preview-label" data-i18n="network.height">Height:</span>
+              <span class="preview-value" id="previewHeight">-</span>
+            </span>
+            <span class="preview-separator">|</span>
+            <span class="preview-item">
+              <span class="preview-label" data-i18n="network.sync">Sync:</span>
+              <span class="preview-value" id="previewSync">-</span>
+            </span>
+            <span class="preview-separator">|</span>
+            <span class="preview-item">
+              <span class="preview-label" data-i18n="network.connections">Conn:</span>
+              <span class="preview-value" id="previewConnections">-</span>
+            </span>
+          </div>
+          <span class="toggle-icon">▼</span>
+        </div>
+        <div class="card-content" id="networkContent">
+          <div class="info-grid">
+          <div class="info-item">
+            <span class="label" data-i18n="network.height">Altezza Blockchain:</span>
+            <span class="value" id="blockHeight">-</span>
+          </div>
+          <div class="info-item">
+            <span class="label" data-i18n="network.blockcount">Numero Blocchi:</span>
+            <span class="value" id="blockCount">-</span>
+          </div>
+          <div class="info-item">
+            <span class="label" data-i18n="network.connections">Connessioni:</span>
+            <span class="value" id="connections">-</span>
+          </div>
+          <div class="info-item">
+            <span class="label" data-i18n="network.difficulty">Difficoltà:</span>
+            <span class="value" id="difficulty">-</span>
+          </div>
+          <div class="info-item">
+            <span class="label" data-i18n="network.version">Versione:</span>
+            <span class="value" id="version">-</span>
+          </div>
+          <div class="info-item">
+            <span class="label" data-i18n="network.sync">Stato Sync:</span>
+            <span class="value" id="syncStatus">-</span>
+          </div>
+          </div>
+          <button class="btn btn-primary" onclick="loadNetworkInfo()" data-i18n="network.refresh">🔄 Aggiorna</button>
+        </div>
+      </section>
+
+      <!-- Sezione Altre Informazioni -->
+      <section class="card collapsible" data-section="details">
+        <div class="card-header" onclick="toggleSection('details')">
+          <h2 data-i18n="details.title">📋 Altre Informazioni</h2>
+          <div class="card-preview" id="detailsPreview">
+            <span class="preview-item">
+              <span class="preview-label" data-i18n="details.freespace">Free:</span>
+              <span class="preview-value" id="previewFreeSpace">-</span>
+            </span>
+            <span class="preview-separator">|</span>
+            <span class="preview-item">
+              <span class="preview-label" data-i18n="details.dbsize">DB:</span>
+              <span class="preview-value" id="previewDbSize">-</span>
+            </span>
+            <span class="preview-separator">|</span>
+            <span class="preview-item">
+              <span class="preview-value" id="previewUptime">-</span>
+            </span>
+          </div>
+          <span class="toggle-icon">▼</span>
+        </div>
+        <div class="card-content" id="detailsContent">
+          <div class="info-grid">
+          <div class="info-item">
+            <span class="label" data-i18n="details.freespace">Spazio Libero:</span>
+            <span class="value" id="freeSpace">-</span>
+          </div>
+          <div class="info-item">
+            <span class="label" data-i18n="details.dbsize">Dimensione Database:</span>
+            <span class="value" id="dbSize">-</span>
+          </div>
+          <div class="info-item">
+            <span class="label" data-i18n="details.txcount">Totale Transazioni:</span>
+            <span class="value" id="txCount">-</span>
+          </div>
+          <div class="info-item">
+            <span class="label" data-i18n="details.txpool">TX in Pool:</span>
+            <span class="value" id="txPoolSize">-</span>
+          </div>
+          <div class="info-item">
+            <span class="label" data-i18n="details.uptime">Uptime Nodo:</span>
+            <span class="value" id="uptime">-</span>
+          </div>
+          <div class="info-item">
+            <span class="label" data-i18n="details.update">Aggiornamento:</span>
+            <span class="value" id="updateStatus">-</span>
+          </div>
+        </div>
+        </div>
+      </section>
+
+      <!-- Sezione Visualizzazione Blocco -->
+      <section class="card collapsible" id="blockVisualization" data-section="blockvis" style="display: none;">
+        <div class="card-header" onclick="toggleSection('blockvis')">
+          <h2 data-i18n="blockvis.title">🧪 Visualizzazione Blocco</h2>
+          <div class="card-preview" id="blockvisPreview">
+            <span class="preview-item">
+              <span class="preview-label" data-i18n="blockvis.txpool">TX Pending:</span>
+              <span class="preview-value" id="previewTxPending">-</span>
+            </span>
+          </div>
+          <span class="toggle-icon">▼</span>
+        </div>
+        <div class="card-content" id="blockvisContent">
+          <div class="block-container">
+          <div class="block-wrapper">
+            <div class="block-frame" id="blockFrame">
+              <div class="tx-container" id="txContainer"></div>
+            </div>
+            <div class="block-info">
+              <span class="block-label" data-i18n="blockvis.height">Altezza Blockchain:</span>
+              <span class="block-value" id="blockVisHeight">-</span>
+            </div>
+          </div>
+          <div class="block-stats">
+            <div class="stat-item">
+              <span class="stat-label" data-i18n="blockvis.txpool">TX in Attesa:</span>
+              <span class="stat-value" id="blockVisTxCount">0</span>
+            </div>
+          </div>
+        </div>
+        </div>
+      </section>
+
+      <!-- Sezione Ricerca Blocco -->
+      <section class="card collapsible collapsed" data-section="blocksearch">
+        <div class="card-header" onclick="toggleSection('blocksearch')">
+          <h2 data-i18n="block.title">🔍 Ricerca Blocco</h2>
+          <span class="toggle-icon">▼</span>
+        </div>
+        <div class="card-content" id="blocksearchContent" style="display: none;">
+        <div class="search-form">
+          <input 
+            type="text" 
+            id="blockInput" 
+            data-i18n-placeholder="block.search.placeholder"
+            placeholder="Inserisci altezza blocco o hash..."
+            class="input"
+          >
+          <button class="btn btn-primary" onclick="searchBlock()" data-i18n="block.search.button">Cerca</button>
+        </div>
+        <div id="blockResult" class="result-container"></div>
+        </div>
+      </section>
+
+      <!-- Sezione Transaction Pool -->
+      <section class="card collapsible collapsed" data-section="txpool">
+        <div class="card-header" onclick="toggleSection('txpool')">
+          <h2 data-i18n="txpool.title">💱 Transaction Pool</h2>
+          <span class="toggle-icon">▼</span>
+        </div>
+        <div class="card-content" id="txpoolContent" style="display: none;">
+        <button class="btn btn-secondary" onclick="loadTransactionPool()" data-i18n="txpool.load">
+          Carica Transazioni in Attesa
+        </button>
+        <div id="txPoolResult" class="result-container"></div>
+        </div>
+      </section>
+
+      <!-- Sezione Chiamata RPC Personalizzata -->
+      <section class="card collapsible collapsed" data-section="customrpc">
+        <div class="card-header" onclick="toggleSection('customrpc')">
+          <h2 data-i18n="rpc.title">⚙️ Chiamata RPC Personalizzata</h2>
+          <span class="toggle-icon">▼</span>
+        </div>
+        <div class="card-content" id="customrpcContent" style="display: none;">
+        <div class="rpc-form">
+          <label for="rpcMethod" data-i18n="rpc.method">Metodo:</label>
+          <input 
+            type="text" 
+            id="rpcMethod" 
+            data-i18n-placeholder="rpc.method.placeholder"
+            placeholder="es: get_block_count"
+            class="input"
+          >
+          
+          <label for="rpcParams" data-i18n="rpc.params">Parametri (JSON):</label>
+          <textarea 
+            id="rpcParams" 
+            placeholder='{"param": "value"}'
+            class="textarea"
+            rows="4"
+          ></textarea>
+          
+          <button class="btn btn-primary" onclick="executeRPC()" data-i18n="rpc.execute">Esegui</button>
+        </div>
+        <div id="rpcResult" class="result-container"></div>
+        </div>
+      </section>
+
+      <!-- Sezione Fee Estimate -->
+      <section class="card collapsible collapsed" data-section="feeestimate">
+        <div class="card-header" onclick="toggleSection('feeestimate')">
+          <h2 data-i18n="fee.title">💰 Stima Fee</h2>
+          <span class="toggle-icon">▼</span>
+        </div>
+        <div class="card-content" id="feeestimateContent" style="display: none;">
+        <button class="btn btn-secondary" onclick="loadFeeEstimate()" data-i18n="fee.button">
+          Ottieni Stima Fee
+        </button>
+        <div id="feeResult" class="result-container"></div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>Monero RPC Web Interface | Built with Node.js & Express</p>
+    </footer>
+  </div>
+
+  <script src="i18n.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

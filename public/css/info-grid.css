@@ -1,0 +1,68 @@
+/* Info Grid and Results */
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px;
+  background: var(--bg-color);
+  border-radius: 5px;
+  border-left: 3px solid var(--primary-color);
+}
+
+.info-item .label {
+  font-weight: 600;
+  color: #aaa;
+}
+
+.info-item .value {
+  font-weight: bold;
+  color: var(--primary-color);
+  font-family: 'Courier New', monospace;
+}
+
+/* Results */
+.result-container {
+  margin-top: 20px;
+}
+
+.result-success,
+.result-error {
+  padding: 20px;
+  border-radius: 5px;
+  margin-top: 15px;
+}
+
+.result-success {
+  background: rgba(76, 175, 80, 0.1);
+  border: 1px solid var(--success-color);
+}
+
+.result-error {
+  background: rgba(244, 67, 54, 0.1);
+  border: 1px solid var(--error-color);
+  color: var(--error-color);
+}
+
+.result-success h3 {
+  color: var(--success-color);
+  margin-bottom: 15px;
+}
+
+pre {
+  background: var(--code-bg);
+  padding: 15px;
+  border-radius: 5px;
+  overflow-x: auto;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  border: 1px solid var(--border-color);
+  max-height: 400px;
+  overflow-y: auto;
+}

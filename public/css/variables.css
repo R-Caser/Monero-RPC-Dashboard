@@ -1,0 +1,50 @@
+/* CSS Variables and Theme Colors */
+
+:root {
+  --primary-color: #ff6600;
+  --secondary-color: #4a4a4a;
+  --success-color: #4caf50;
+  --error-color: #f44336;
+}
+
+/* Dark Theme (Default) */
+[data-theme="dark"] {
+  --bg-color: #1a1a1a;
+  --bg-gradient-start: #1a1a1a;
+  --bg-gradient-end: #2a2a2a;
+  --card-bg: #2a2a2a;
+  --text-color: #e0e0e0;
+  --text-secondary: #b0b0b0;
+  --border-color: #3a3a3a;
+  --code-bg: #1e1e1e;
+  --input-bg: #2a2a2a;
+  --shadow-color: rgba(0, 0, 0, 0.3);
+}
+
+/* Light Theme */
+[data-theme="light"] {
+  --bg-color: #f5f5f5;
+  --bg-gradient-start: #f5f5f5;
+  --bg-gradient-end: #e0e0e0;
+  --card-bg: #ffffff;
+  --text-color: #2a2a2a;
+  --text-secondary: #666666;
+  --border-color: #d0d0d0;
+  --code-bg: #f0f0f0;
+  --input-bg: #ffffff;
+  --shadow-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Set default theme if no attribute is present */
+body:not([data-theme]) {
+  --bg-color: #1a1a1a;
+  --bg-gradient-start: #1a1a1a;
+  --bg-gradient-end: #2a2a2a;
+  --card-bg: #2a2a2a;
+  --text-color: #e0e0e0;
+  --text-secondary: #b0b0b0;
+  --border-color: #3a3a3a;
+  --code-bg: #1e1e1e;
+  --input-bg: #2a2a2a;
+  --shadow-color: rgba(0, 0, 0, 0.3);
+}
