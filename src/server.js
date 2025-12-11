@@ -14,6 +14,12 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
 
+// Middleware di logging per debug
+app.use((req, res, next) => {
+  console.log(`📞 ${req.method} ${req.path}`);
+  next();
+});
+
 // Assicurati che la directory data esista
 const dataDir = path.join(__dirname, '../data');
 if (!fs.existsSync(dataDir)) {
@@ -37,6 +43,7 @@ async function initRPCClient() {
         port: config.port,
         user: config.requires_auth ? config.username : null,
         password: config.requires_auth ? config.password : null,
+        useHttps: config.use_https === 1 || config.use_https === true,
       });
     } else {
       console.warn('⚠️  Nessuna configurazione RPC attiva trovata');
@@ -491,13 +498,20 @@ app.get('/api/health', async (req, res) => {
  * Ottiene informazioni generali sul daemon Monero
  */
 app.get('/api/info', async (req, res) => {
+  console.log('📞 Richiesta ricevuta su /api/info');
   try {
+    if (!rpcClient) {
+      throw new Error('RPC client non inizializzato');
+    }
+    console.log('🔗 Chiamata getInfo() sul client RPC...');
     const info = await rpcClient.getInfo();
+    console.log('✅ Informazioni ricevute dal nodo, invio risposta');
     res.json({
       success: true,
       data: info,
     });
   } catch (error) {
+    console.error('❌ Errore in /api/info:', error.message);
     res.status(500).json({
       success: false,
       error: error.message,
