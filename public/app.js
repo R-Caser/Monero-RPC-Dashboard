@@ -6,9 +6,16 @@ const API_BASE = '/api';
 // Formatta i byte in formato leggibile
 function formatBytes(bytes) {
   if (bytes === 0) return '0 Bytes';
+  
+  // 2^64 - 1 è usato da Monero per indicare "illimitato" o "non disponibile"
+  // Controlla se il valore è vicino a questo numero (considerando l'imprecisione di JS)
+  if (bytes >= 18446744073709551000 || bytes < 0) {
+    return t ? t('common.unlimited') : 'Unlimited';
+  }
+  
   const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB'];
+  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), sizes.length - 1);
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 

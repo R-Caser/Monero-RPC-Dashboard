@@ -6,6 +6,9 @@ registerTranslation('es-ES', {
     flag: '🇪🇸'
   },
   
+  // Common
+  'common.unlimited': 'Ilimitado',
+  
   // Header
   'app.title': 'Monero RPC Dashboard',
   'header.status.connecting': 'Conectando...',
