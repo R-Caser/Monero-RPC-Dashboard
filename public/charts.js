@@ -244,15 +244,21 @@ function initCharts() {
 function updateCharts(stats) {
   if (!stats) return;
 
-  const timestamp = new Date(stats.timestamp).toLocaleTimeString('it-IT', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  });
+  // Usa il numero di blocco come etichetta se è un nuovo blocco, altrimenti usa timestamp
+  let label;
+  if (stats.isNewBlock) {
+    label = `Block ${stats.height}`;
+  } else {
+    label = new Date(stats.timestamp).toLocaleTimeString('it-IT', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  }
 
   // Aggiorna Hashrate
   if (charts.hashrate) {
-    chartData.hashrate.labels.push(timestamp);
+    chartData.hashrate.labels.push(label);
     chartData.hashrate.data.push((stats.hashrate / 1000000).toFixed(2)); // Converti in MH/s
 
     if (chartData.hashrate.labels.length > MAX_DATA_POINTS) {
@@ -260,12 +266,13 @@ function updateCharts(stats) {
       chartData.hashrate.data.shift();
     }
 
-    charts.hashrate.update('none');
+    // Usa animazione se è un nuovo blocco
+    charts.hashrate.update(stats.isNewBlock ? 'active' : 'none');
   }
 
   // Aggiorna Connessioni
   if (charts.connections) {
-    chartData.connections.labels.push(timestamp);
+    chartData.connections.labels.push(label);
     chartData.connections.incoming.push(stats.incomingConnections);
     chartData.connections.outgoing.push(stats.outgoingConnections);
 
@@ -275,12 +282,12 @@ function updateCharts(stats) {
       chartData.connections.outgoing.shift();
     }
 
-    charts.connections.update('none');
+    charts.connections.update(stats.isNewBlock ? 'active' : 'none');
   }
 
   // Aggiorna Difficoltà
   if (charts.difficulty) {
-    chartData.difficulty.labels.push(timestamp);
+    chartData.difficulty.labels.push(label);
     chartData.difficulty.data.push(stats.difficulty);
 
     if (chartData.difficulty.labels.length > MAX_DATA_POINTS) {
@@ -288,12 +295,12 @@ function updateCharts(stats) {
       chartData.difficulty.data.shift();
     }
 
-    charts.difficulty.update('none');
+    charts.difficulty.update(stats.isNewBlock ? 'active' : 'none');
   }
 
   // Aggiorna Transaction Pool
   if (charts.txpool) {
-    chartData.txpool.labels.push(timestamp);
+    chartData.txpool.labels.push(label);
     chartData.txpool.data.push(stats.txPoolSize);
 
     if (chartData.txpool.labels.length > MAX_DATA_POINTS) {
@@ -301,7 +308,12 @@ function updateCharts(stats) {
       chartData.txpool.data.shift();
     }
 
-    charts.txpool.update('none');
+    charts.txpool.update(stats.isNewBlock ? 'active' : 'none');
+  }
+  
+  // Se è un nuovo blocco, mostra una notifica toast
+  if (stats.isNewBlock && typeof showToast === 'function') {
+    showToast(`🆕 Nuovo blocco: ${stats.height} | TX: ${stats.txPoolSize}`, 'info');
   }
 }
 
