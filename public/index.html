@@ -118,6 +118,14 @@
               <input type="number" id="refreshInterval" class="input" min="5" max="300" value="30" onchange="updateAutoRefreshSettings()">
               <small data-i18n="settings.intervalhelp">Tra 5 e 300 secondi</small>
             </div>
+            
+            <div class="form-group">
+              <label>
+                <input type="checkbox" id="blockchainScanEnabled" onchange="updateAutoRefreshSettings()">
+                <span data-i18n="settings.blockchain_scan">Abilita scansione storico blockchain</span>
+              </label>
+              <small data-i18n="settings.blockchain_scan_help">Raccoglie statistiche storiche dal blocco 1 per grafici di lungo periodo</small>
+            </div>
           </div>
 
           <!-- Gestione Storico Dati -->

@@ -726,8 +726,16 @@ async function loadSettings() {
       document.getElementById('autoRefreshEnabled').checked = settings.auto_refresh_enabled === 1;
       document.getElementById('refreshInterval').value = settings.auto_refresh_interval || 30;
       
+      // Imposta checkbox scansione blockchain
+      if (document.getElementById('blockchainScanEnabled')) {
+        document.getElementById('blockchainScanEnabled').checked = settings.blockchain_scan_enabled !== 0;
+      }
+      
       // Applica le impostazioni auto-refresh
       applyAutoRefreshSettings(settings.auto_refresh_enabled === 1, settings.auto_refresh_interval);
+      
+      // Mostra/nascondi selettore periodo in base alla scansione
+      togglePeriodSelector(settings.blockchain_scan_enabled !== 0);
     }
   } catch (error) {
     console.error('Errore caricamento impostazioni:', error);
@@ -738,6 +746,7 @@ async function loadSettings() {
 async function updateAutoRefreshSettings() {
   const enabled = document.getElementById('autoRefreshEnabled').checked;
   const interval = parseInt(document.getElementById('refreshInterval').value);
+  const blockchainScanEnabled = document.getElementById('blockchainScanEnabled') ? document.getElementById('blockchainScanEnabled').checked : true;
   
   try {
     const response = await fetch(`${API_BASE}/settings`, {
@@ -745,7 +754,8 @@ async function updateAutoRefreshSettings() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         auto_refresh_enabled: enabled,
-        auto_refresh_interval: interval
+        auto_refresh_interval: interval,
+        blockchain_scan_enabled: blockchainScanEnabled
       })
     });
     
@@ -753,6 +763,7 @@ async function updateAutoRefreshSettings() {
     
     if (data.success) {
       applyAutoRefreshSettings(enabled, interval);
+      togglePeriodSelector(blockchainScanEnabled);
     } else {
       alert(`❌ ${t('common.error')} ${data.error}`);
     }
@@ -786,6 +797,21 @@ function applyAutoRefreshSettings(enabled, interval) {
     if (refreshButton) {
       refreshButton.style.display = '';
     }
+  }
+}
+
+// Mostra/nascondi il selettore periodo e la barra di scansione
+function togglePeriodSelector(enabled) {
+  const periodSelector = document.querySelector('.period-selector');
+  const scanProgress = document.getElementById('scanProgressContainer');
+  
+  if (periodSelector) {
+    periodSelector.style.display = enabled ? 'flex' : 'none';
+  }
+  
+  // Nascondi sempre la barra di scansione quando la scansione è disabilitata
+  if (scanProgress) {
+    scanProgress.style.display = enabled ? '' : 'none';
   }
 }
 

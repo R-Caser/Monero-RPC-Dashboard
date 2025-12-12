@@ -55,6 +55,8 @@ registerTranslation('it-IT', {
   'settings.autorefresh': 'Abilita auto-refresh Network Information',
   'settings.interval': 'Intervallo (secondi):',
   'settings.intervalhelp': 'Tra 5 e 300 secondi',
+  'settings.blockchain_scan': 'Abilita scansione storico blockchain',
+  'settings.blockchain_scan_help': 'Raccoglie statistiche storiche dal blocco 1 per grafici di lungo periodo',
   
   // Network Info Section
   'network.title': 'Informazioni Rete',

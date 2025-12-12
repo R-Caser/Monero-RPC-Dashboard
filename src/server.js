@@ -74,8 +74,13 @@ async function initRPCClient() {
         useHttps: config.use_https === 1 || config.use_https === true,
       });
       
-      // Inizializza anche il worker con la nuova configurazione
-      await initBlockchainWorker(config);
+      // Inizializza anche il worker con la nuova configurazione solo se abilitato
+      const settings = await db.getSettings();
+      if (settings.blockchain_scan_enabled) {
+        await initBlockchainWorker(config);
+      } else {
+        console.log('⏸️  Scansione blockchain disabilitata nelle impostazioni');
+      }
     } else {
       console.warn('⚠️  Nessuna configurazione RPC attiva trovata');
     }
@@ -859,7 +864,7 @@ app.get('/api/settings', async (req, res) => {
  */
 app.put('/api/settings', async (req, res) => {
   try {
-    const { auto_refresh_enabled, auto_refresh_interval } = req.body;
+    const { auto_refresh_enabled, auto_refresh_interval, blockchain_scan_enabled } = req.body;
     
     if (typeof auto_refresh_enabled !== 'boolean') {
       return res.status(400).json({
@@ -880,8 +885,23 @@ app.put('/api/settings', async (req, res) => {
     
     await db.updateSettings({
       auto_refresh_enabled: auto_refresh_enabled ? 1 : 0,
-      auto_refresh_interval: auto_refresh_interval || 30
+      auto_refresh_interval: auto_refresh_interval || 30,
+      blockchain_scan_enabled: blockchain_scan_enabled !== undefined ? (blockchain_scan_enabled ? 1 : 0) : undefined
     });
+    
+    // Gestisci il worker in base alle nuove impostazioni
+    if (blockchain_scan_enabled !== undefined) {
+      const config = await db.getActiveConfig();
+      if (blockchain_scan_enabled && config) {
+        console.log('▶️  Avvio scansione blockchain...');
+        await initBlockchainWorker(config);
+      } else if (!blockchain_scan_enabled && blockchainWorker) {
+        console.log('⏸️  Arresto scansione blockchain...');
+        blockchainWorker.postMessage({ type: 'stop_scan' });
+        await blockchainWorker.terminate();
+        blockchainWorker = null;
+      }
+    }
     
     const updatedSettings = await db.getSettings();
     res.json({

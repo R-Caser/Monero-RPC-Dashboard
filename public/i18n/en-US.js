@@ -55,6 +55,8 @@ registerTranslation('en-US', {
   'settings.autorefresh': 'Enable Network Information auto-refresh',
   'settings.interval': 'Interval (seconds):',
   'settings.intervalhelp': 'Between 5 and 300 seconds',
+  'settings.blockchain_scan': 'Enable blockchain historical scan',
+  'settings.blockchain_scan_help': 'Collects historical statistics from block 1 for long-term charts',
   
   // Network Info Section
   'network.title': 'Network Information',

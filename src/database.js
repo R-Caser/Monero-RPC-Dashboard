@@ -46,6 +46,7 @@ class Database {
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           auto_refresh_enabled INTEGER DEFAULT 0,
           auto_refresh_interval INTEGER DEFAULT 30,
+          blockchain_scan_enabled INTEGER DEFAULT 1,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
       `;
@@ -169,8 +170,9 @@ class Database {
                                   reject(err);
                                 } else {
                                   console.log('✅ Tabella scan_progress creata/verificata');
-                                  // Inserisci configurazione di default se non esiste
-                                  this.initDefaultConfig()
+                                  // Migrazione: aggiungi colonna blockchain_scan_enabled se non esiste
+                                  this.migrateBlockchainScanColumn()
+                                    .then(() => this.initDefaultConfig())
                                     .then(() => this.initDefaultSettings())
                                     .then(() => this.initDefaultUser())
                                     .then(() => this.initScanProgress())
@@ -188,6 +190,40 @@ class Database {
               });
             }
           });
+        }
+      });
+    });
+  }
+
+  // Migrazione: aggiungi colonna blockchain_scan_enabled se non esiste
+  migrateBlockchainScanColumn() {
+    return new Promise((resolve, reject) => {
+      // Verifica se la colonna esiste già
+      this.db.all("PRAGMA table_info(app_settings)", [], (err, columns) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        
+        const hasColumn = columns.some(col => col.name === 'blockchain_scan_enabled');
+        
+        if (!hasColumn) {
+          console.log('🔄 Migrazione: aggiunta colonna blockchain_scan_enabled...');
+          this.db.run(
+            "ALTER TABLE app_settings ADD COLUMN blockchain_scan_enabled INTEGER DEFAULT 1",
+            [],
+            (err) => {
+              if (err) {
+                console.error('❌ Errore migrazione blockchain_scan_enabled:', err.message);
+                reject(err);
+              } else {
+                console.log('✅ Colonna blockchain_scan_enabled aggiunta');
+                resolve();
+              }
+            }
+          );
+        } else {
+          resolve();
         }
       });
     });
@@ -260,8 +296,8 @@ class Database {
 
         if (row.count === 0) {
           const insertQuery = `
-            INSERT INTO app_settings (auto_refresh_enabled, auto_refresh_interval)
-            VALUES (0, 30)
+            INSERT INTO app_settings (auto_refresh_enabled, auto_refresh_interval, blockchain_scan_enabled)
+            VALUES (0, 30, 1)
           `;
 
           this.db.run(insertQuery, [], (err) => {
@@ -289,7 +325,7 @@ class Database {
         if (err) {
           reject(err);
         } else {
-          resolve(row || { auto_refresh_enabled: 0, auto_refresh_interval: 30 });
+          resolve(row || { auto_refresh_enabled: 0, auto_refresh_interval: 30, blockchain_scan_enabled: 1 });
         }
       });
     });
@@ -309,15 +345,16 @@ class Database {
         if (row.count === 0) {
           // Insert
           const insertQuery = `
-            INSERT INTO app_settings (auto_refresh_enabled, auto_refresh_interval)
-            VALUES (?, ?)
+            INSERT INTO app_settings (auto_refresh_enabled, auto_refresh_interval, blockchain_scan_enabled)
+            VALUES (?, ?, ?)
           `;
           
           this.db.run(
             insertQuery,
             [
               settings.auto_refresh_enabled ? 1 : 0,
-              settings.auto_refresh_interval || 30
+              settings.auto_refresh_interval || 30,
+              settings.blockchain_scan_enabled !== undefined ? (settings.blockchain_scan_enabled ? 1 : 0) : 1
             ],
             function(err) {
               if (err) {
@@ -331,7 +368,7 @@ class Database {
           // Update
           const updateQuery = `
             UPDATE app_settings 
-            SET auto_refresh_enabled = ?, auto_refresh_interval = ?, updated_at = CURRENT_TIMESTAMP
+            SET auto_refresh_enabled = ?, auto_refresh_interval = ?, blockchain_scan_enabled = ?, updated_at = CURRENT_TIMESTAMP
             WHERE id = (SELECT id FROM app_settings LIMIT 1)
           `;
           
@@ -339,7 +376,8 @@ class Database {
             updateQuery,
             [
               settings.auto_refresh_enabled ? 1 : 0,
-              settings.auto_refresh_interval || 30
+              settings.auto_refresh_interval || 30,
+              settings.blockchain_scan_enabled !== undefined ? (settings.blockchain_scan_enabled ? 1 : 0) : 1
             ],
             function(err) {
               if (err) {

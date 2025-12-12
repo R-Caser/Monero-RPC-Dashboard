@@ -208,19 +208,36 @@ function updateAllCharts() {
 // Funzione per caricare e mostrare il progresso della scansione blockchain
 async function loadScanProgress() {
   try {
+    // Verifica prima se la scansione è abilitata
+    const settingsResponse = await fetch('/api/settings');
+    const settingsResult = await settingsResponse.json();
+    
+    const container = document.getElementById('scanProgressContainer');
+    
+    // Nascondi se la scansione è disabilitata
+    if (settingsResult.success && settingsResult.data.blockchain_scan_enabled === 0) {
+      if (container) container.style.display = 'none';
+      return;
+    }
+    
     const response = await fetch('/api/scan-progress');
     const result = await response.json();
     
     if (result.success && result.progress) {
       const progress = result.progress;
-      const container = document.getElementById('scanProgressContainer');
       const lastBlock = document.getElementById('scanLastBlock');
       const totalBlocks = document.getElementById('scanTotalBlocks');
       const statusBadge = document.getElementById('scanStatusBadge');
       const statusText = document.getElementById('scanStatusText');
       const progressFill = document.getElementById('scanProgressFill');
       
-      // Mostra il container
+      // Nascondi il container se la scansione è completata
+      if (progress.is_initial_scan_complete) {
+        if (container) container.style.display = 'none';
+        return;
+      }
+      
+      // Mostra il container solo se la scansione è in corso
       if (container) container.style.display = 'block';
       
       // Aggiorna i valori
@@ -239,19 +256,13 @@ async function loadScanProgress() {
           progressFill.style.width = `${percentage.toFixed(1)}%`;
         }
         
-        // Aggiorna lo stato
-        if (progress.is_initial_scan_complete) {
-          if (statusBadge) statusBadge.textContent = '✅';
-          if (statusText) statusText.textContent = getCurrentTranslation('charts.scan_completed') || 'Scan completed';
-          if (container) container.classList.add('completed');
-        } else {
-          if (statusBadge) statusBadge.textContent = '⏳';
-          if (statusText) {
-            statusText.textContent = (getCurrentTranslation('charts.scan_in_progress') || 'Scanning...') + 
-              ` (${percentage.toFixed(1)}%)`;
-          }
-          if (container) container.classList.remove('completed');
+        // Aggiorna lo stato (sempre in progress se arriviamo qui)
+        if (statusBadge) statusBadge.textContent = '⏳';
+        if (statusText) {
+          statusText.textContent = (getCurrentTranslation('charts.scan_in_progress') || 'Scanning...') + 
+            ` (${percentage.toFixed(1)}%)`;
         }
+        if (container) container.classList.remove('completed');
       }
     }
   } catch (error) {
