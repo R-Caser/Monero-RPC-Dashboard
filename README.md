@@ -17,7 +17,8 @@ A comprehensive web application for managing and monitoring Monero nodes through
 - **Block-Based Charts**: Four Chart.js visualizations updated only on new blocks
 - **Multi-Period Views**: Real-time, 30 days, 3 months, 6 months, 1 year, 5 years, Max
 - **Aggregated Statistics**: Pre-calculated averages for long-term historical analysis
-- **Blockchain Scanner**: Automatic historical data aggregation from block 1
+- **Blockchain Scanner**: Automatic historical data aggregation in isolated Worker Thread
+- **Zero Frontend Impact**: Scanner runs in separate thread without blocking HTTP/WebSocket
 - **Sync Status**: Real-time synchronization monitoring with visual indicators
 - **Node Information**: Version, uptime, update availability alerts
 - **Database Metrics**: Storage usage and free space monitoring
@@ -44,7 +45,8 @@ A comprehensive web application for managing and monitoring Monero nodes through
 - **Aggregated Statistics**: Pre-calculated averages by period (daily, 3-day, weekly, monthly)
 - **Multi-Period Analysis**: View data from 30 days up to entire blockchain history
 - **Data Retention**: 30-day rolling window for real-time data, smart retention for aggregated data
-- **Blockchain Scanner**: Background process that aggregates historical data from block 1
+- **Blockchain Scanner**: Background Worker Thread that aggregates historical data from block 1
+- **Non-Blocking Architecture**: Scanner runs in isolated thread without interfering with frontend
 - **Smart Notifications**: Multi-level alert system (info, warning, error, success)
 - **Toast Alerts**: Real-time visual notifications for important events
 - **Notification Panel**: Centralized notification center with read/unread status
@@ -122,10 +124,11 @@ http://localhost:3000
 ```
 Monero-RPC-Dashboard/
 ├── src/
-│   ├── server.js          # Express server, WebSocket, API routes, and blockchain scanner
-│   ├── database.js        # SQLite database with 7 tables (including aggregated_statistics)
-│   ├── moneroRPC.js       # Monero RPC client wrapper
-│   └── auth.js            # RBAC middleware and authentication
+│   ├── server.js              # Express server, WebSocket, and API routes
+│   ├── blockchainWorker.js    # Worker Thread for blockchain scanning (isolated)
+│   ├── database.js            # SQLite database with 7 tables (including aggregated_statistics)
+│   ├── moneroRPC.js           # Monero RPC client wrapper
+│   └── auth.js                # RBAC middleware and authentication
 ├── public/
 │   ├── index.html         # Main application HTML
 │   ├── app.js            # Frontend JavaScript logic
@@ -279,7 +282,8 @@ Monero-RPC-Dashboard/
 - **Node.js** - JavaScript runtime
 - **Express.js** - Web framework
 - **Socket.IO** - Real-time WebSocket communication
-- **SQLite3** - Embedded database with 5 tables
+- **Worker Threads** - Isolated blockchain scanning without blocking main thread
+- **SQLite3** - Embedded database with 7 tables
 - **bcryptjs** - Secure password hashing
 - **express-session** - Session management
 - **cookie-parser** - Cookie handling
@@ -342,6 +346,7 @@ This project is licensed under the **GPL-3.0 License** - see the [LICENSE](LICEN
 - [x] Multi-period chart views (Real-time, 30 days, 3 months, 6 months, 1 year, 5 years, Max)
 - [x] Blockchain scanner (Automatic historical data aggregation from block 1)
 - [x] Aggregated statistics (Pre-calculated averages by period with smart retention)
+- [x] Worker Threads architecture (Isolated blockchain scanning without frontend interference)
 
 ### 🔜 Planned Features
 - [ ] **Export/Import configurations** - Backup and restore RPC configurations
