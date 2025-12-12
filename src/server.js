@@ -1096,6 +1096,80 @@ app.post('/api/rpc', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/historical-data/recent
+ * Ottiene gli ultimi dati storici per popolare i grafici
+ */
+app.get('/api/historical-data/recent', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 60; // Ultimi 60 punti
+    
+    const data = await db.getHistoricalData(limit);
+    
+    // Inverti l'ordine per avere dal più vecchio al più recente
+    const reversedData = data.reverse();
+    
+    res.json({
+      success: true,
+      data: reversedData
+    });
+  } catch (error) {
+    console.error('❌ Errore recupero dati storici recenti:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/historical-data
+ * Ottiene i dati storici per periodo specificato
+ */
+app.get('/api/historical-data', async (req, res) => {
+  try {
+    const { period = '1h', metric = 'all' } = req.query;
+    
+    let timeRange;
+    const now = new Date();
+    
+    switch (period) {
+      case '1h':
+        timeRange = new Date(now.getTime() - 60 * 60 * 1000);
+        break;
+      case '24h':
+        timeRange = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        break;
+      case '7d':
+        timeRange = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case '30d':
+        timeRange = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      default:
+        timeRange = new Date(now.getTime() - 60 * 60 * 1000);
+    }
+    
+    const data = await db.getHistoricalDataByTimeRange(
+      timeRange.toISOString(),
+      now.toISOString()
+    );
+    
+    res.json({
+      success: true,
+      data: data,
+      period: period,
+      metric: metric
+    });
+  } catch (error) {
+    console.error('❌ Errore recupero dati storici:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // Serve il frontend
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));

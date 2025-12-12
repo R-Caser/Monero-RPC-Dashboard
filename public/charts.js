@@ -30,6 +30,68 @@ const chartData = {
 
 const MAX_DATA_POINTS = 60; // Mantieni ultimi 60 punti (5 minuti a 5 secondi)
 
+// Funzione per caricare i dati storici dal database
+async function loadHistoricalChartData() {
+  try {
+    const response = await fetch('/api/historical-data/recent?limit=60');
+    const result = await response.json();
+    
+    if (result.success && result.data && result.data.length > 0) {
+      console.log(`📊 Caricati ${result.data.length} punti dati storici per i grafici`);
+      
+      result.data.forEach(record => {
+        const label = `#${record.height}`;
+        
+        // Aggiungi dati hashrate
+        chartData.hashrate.labels.push(label);
+        chartData.hashrate.data.push(record.hashrate);
+        
+        // Aggiungi dati connessioni
+        chartData.connections.labels.push(label);
+        chartData.connections.incoming.push(record.incoming_connections || 0);
+        chartData.connections.outgoing.push(record.outgoing_connections || 0);
+        
+        // Aggiungi dati difficoltà
+        chartData.difficulty.labels.push(label);
+        chartData.difficulty.data.push(record.difficulty);
+        
+        // Aggiungi dati TX pool
+        chartData.txpool.labels.push(label);
+        chartData.txpool.data.push(record.tx_pool_size || 0);
+      });
+      
+      // Mantieni solo gli ultimi MAX_DATA_POINTS
+      if (chartData.hashrate.labels.length > MAX_DATA_POINTS) {
+        const excess = chartData.hashrate.labels.length - MAX_DATA_POINTS;
+        chartData.hashrate.labels.splice(0, excess);
+        chartData.hashrate.data.splice(0, excess);
+        chartData.connections.labels.splice(0, excess);
+        chartData.connections.incoming.splice(0, excess);
+        chartData.connections.outgoing.splice(0, excess);
+        chartData.difficulty.labels.splice(0, excess);
+        chartData.difficulty.data.splice(0, excess);
+        chartData.txpool.labels.splice(0, excess);
+        chartData.txpool.data.splice(0, excess);
+      }
+      
+      // Aggiorna i grafici se sono già inizializzati
+      if (charts.hashrate) {
+        charts.hashrate.update('none');
+        charts.connections.update('none');
+        charts.difficulty.update('none');
+        charts.txpool.update('none');
+      }
+      
+      return true;
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('❌ Errore caricamento dati storici:', error);
+    return false;
+  }
+}
+
 // Funzione per ottenere i colori del tema corrente
 function getThemeColors() {
   const style = getComputedStyle(document.documentElement);

@@ -20,6 +20,15 @@ function initWebSocket() {
     isConnected = true;
     updateWebSocketStatus(true);
     
+    // Carica i dati storici per popolare i grafici
+    if (typeof loadHistoricalChartData === 'function') {
+      loadHistoricalChartData().then(loaded => {
+        if (loaded) {
+          console.log('✅ Grafici popolati con dati storici');
+        }
+      });
+    }
+    
     // Iscriviti al canale delle statistiche di rete
     socket.emit('subscribe', 'network-stats');
   });
