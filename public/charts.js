@@ -126,9 +126,9 @@ async function loadAggregatedChartData(aggregationType, limit = 60) {
       aggregatedData.forEach(record => {
         const label = formatAggregatedLabel(record, aggregationType);
         
-        // Hashrate
+        // Hashrate (converti in MH/s per coerenza)
         chartData.hashrate.labels.push(label);
-        chartData.hashrate.data.push(record.avg_hashrate || 0);
+        chartData.hashrate.data.push(parseFloat(((record.avg_hashrate || 0) / 1000000).toFixed(2)));
         
         // Difficulty
         chartData.difficulty.labels.push(label);
@@ -337,9 +337,9 @@ async function loadHistoricalChartData() {
       uniqueBlocks.forEach(block => {
         const label = `#${block.height}`;
         
-        // Aggiungi dati hashrate
+        // Aggiungi dati hashrate (converti in MH/s per coerenza con updateCharts)
         chartData.hashrate.labels.push(label);
-        chartData.hashrate.data.push(block.hashrate);
+        chartData.hashrate.data.push(parseFloat((block.hashrate / 1000000).toFixed(2)));
         
         // Aggiungi dati connessioni
         chartData.connections.labels.push(label);
