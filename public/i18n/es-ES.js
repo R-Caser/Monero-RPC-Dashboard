@@ -57,6 +57,19 @@ registerTranslation('es-ES', {
   'block.title': 'Búsqueda de Bloque',
   'block.search.button': 'Buscar',
   
+  // Charts & Real-Time Stats
+  'charts.title': 'Estadísticas en Tiempo Real',
+  'charts.height': 'Altura',
+  'charts.hashrate': 'Hashrate',
+  'charts.difficulty': 'Dificultad',
+  'charts.txpool': 'TX Pool',
+  'charts.incoming': 'Entrantes',
+  'charts.outgoing': 'Salientes',
+  'charts.hashrate_history': 'Hashrate de Red',
+  'charts.connections_history': 'Conexiones',
+  'charts.difficulty_history': 'Dificultad de Red',
+  'charts.txpool_history': 'Pool de Transacciones',
+  
   // Common
   'common.error': 'Error:',
   'common.loading': 'Cargando...',

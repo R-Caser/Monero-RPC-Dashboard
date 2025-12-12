@@ -13,6 +13,8 @@
   <link rel="stylesheet" href="css/info-grid.css">
   <link rel="stylesheet" href="css/config.css">
   <link rel="stylesheet" href="css/block-visualization.css">
+  <link rel="stylesheet" href="css/charts.css">
+  <link rel="stylesheet" href="css/auth.css">
   <link rel="stylesheet" href="css/responsive.css">
 </head>
 <body data-theme="dark">
@@ -177,6 +179,82 @@
           </div>
           </div>
           <button class="btn btn-primary" onclick="loadNetworkInfo()" data-i18n="network.refresh">🔄 Aggiorna</button>
+        </div>
+      </section>
+
+      <!-- Sezione Grafici Real-Time -->
+      <section class="card collapsible" data-section="charts">
+        <div class="card-header" onclick="toggleSection('charts')">
+          <h2 data-i18n="charts.title">📈 Statistiche Real-Time</h2>
+          <div class="card-preview" id="chartsPreview">
+            <span class="preview-item ws-status-indicator">
+              <span class="ws-dot" id="wsIndicator"></span>
+              <span class="preview-value" id="wsStatusText">Connecting...</span>
+            </span>
+            <span class="preview-separator">|</span>
+            <span class="preview-item">
+              <span class="preview-label">Last Update:</span>
+              <span class="preview-value" id="lastUpdateTime">-</span>
+            </span>
+          </div>
+          <span class="toggle-icon">▼</span>
+        </div>
+        <div class="card-content" id="chartsContent">
+          <!-- Real-time Stats Cards -->
+          <div class="realtime-stats-grid">
+            <div class="stat-card">
+              <div class="stat-label" data-i18n="charts.height">Height</div>
+              <div class="stat-value" id="realtimeHeight">-</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label" data-i18n="charts.hashrate">Hashrate</div>
+              <div class="stat-value" id="realtimeHashrate">-</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label" data-i18n="charts.difficulty">Difficulty</div>
+              <div class="stat-value" id="realtimeDifficulty">-</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label" data-i18n="charts.txpool">TX Pool</div>
+              <div class="stat-value" id="realtimeTxPool">-</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label" data-i18n="charts.incoming">Incoming</div>
+              <div class="stat-value" id="realtimeIncoming">-</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label" data-i18n="charts.outgoing">Outgoing</div>
+              <div class="stat-value" id="realtimeOutgoing">-</div>
+            </div>
+          </div>
+
+          <!-- Charts Grid -->
+          <div class="charts-grid">
+            <div class="chart-container">
+              <h3 data-i18n="charts.hashrate_history">Network Hashrate</h3>
+              <div class="chart-wrapper">
+                <canvas id="hashrateChart"></canvas>
+              </div>
+            </div>
+            <div class="chart-container">
+              <h3 data-i18n="charts.connections_history">Connessioni</h3>
+              <div class="chart-wrapper">
+                <canvas id="connectionsChart"></canvas>
+              </div>
+            </div>
+            <div class="chart-container">
+              <h3 data-i18n="charts.difficulty_history">Difficoltà Rete</h3>
+              <div class="chart-wrapper">
+                <canvas id="difficultyChart"></canvas>
+              </div>
+            </div>
+            <div class="chart-container">
+              <h3 data-i18n="charts.txpool_history">Transaction Pool</h3>
+              <div class="chart-wrapper">
+                <canvas id="txpoolChart"></canvas>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -350,7 +428,38 @@
     </footer>
   </div>
 
+  <!-- Socket.IO Client -->
+  <script src="/socket.io/socket.io.js"></script>
+  
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  
+  <!-- App Scripts -->
+  <!-- App Scripts -->
   <script src="i18n.js"></script>
+  <script src="auth.js"></script>
+  <script src="charts.js"></script>
+  <script src="websocket.js"></script>
   <script src="app.js"></script>
+  
+  <script>
+    // Inizializza grafici, WebSocket e autenticazione al caricamento
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Verifica sessione
+      await checkSession();
+      
+      // Carica notifiche
+      await loadNotifications();
+      
+      // Inizializza grafici e WebSocket
+      setTimeout(() => {
+        initCharts();
+        initWebSocket();
+      }, 1000);
+      
+      // Aggiorna notifiche ogni 30 secondi
+      setInterval(loadNotifications, 30000);
+    });
+  </script>
 </body>
 </html>

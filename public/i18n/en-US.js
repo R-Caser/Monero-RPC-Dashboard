@@ -124,6 +124,19 @@ registerTranslation('en-US', {
   'rpc.error.params': 'Invalid JSON parameters',
   'rpc.error.execution': 'Error executing RPC call',
   
+  // Charts & Real-Time Stats
+  'charts.title': 'Real-Time Statistics',
+  'charts.height': 'Height',
+  'charts.hashrate': 'Hashrate',
+  'charts.difficulty': 'Difficulty',
+  'charts.txpool': 'TX Pool',
+  'charts.incoming': 'Incoming',
+  'charts.outgoing': 'Outgoing',
+  'charts.hashrate_history': 'Network Hashrate',
+  'charts.connections_history': 'Connections',
+  'charts.difficulty_history': 'Network Difficulty',
+  'charts.txpool_history': 'Transaction Pool',
+  
   // Common
   'common.error': 'Error:',
   'common.error.generic': '❌ Error:',

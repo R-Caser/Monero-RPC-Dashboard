@@ -3,15 +3,41 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const http = require('http');
+const { Server } = require('socket.io');
+const session = require('express-session');
+const cookieParser = require('cookie-parser');
 const MoneroRPCClient = require('./moneroRPC');
 const Database = require('./database');
+const { requireAuth, requireAdmin, verifyPassword } = require('./auth');
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
+});
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
 app.use(express.json());
+app.use(cookieParser());
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'xmr-dashboard-secret-key-change-this',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: false, // set to true if using HTTPS
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000 // 24 ore
+  }
+}));
 app.use(express.static(path.join(__dirname, '../public')));
 
 // Middleware di logging per debug
@@ -56,13 +82,244 @@ async function initRPCClient() {
 // Inizializza il client RPC al avvio
 setTimeout(() => initRPCClient(), 1000);
 
+// ==================== AUTHENTICATION ROUTES ====================
+
+/**
+ * POST /api/auth/login
+ * Login utente
+ */
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+      return res.status(400).json({
+        success: false,
+        error: 'Username e password sono obbligatori'
+      });
+    }
+
+    const user = await db.getUserByUsername(username);
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Credenziali non valide'
+      });
+    }
+
+    const isValid = await verifyPassword(password, user.password);
+    if (!isValid) {
+      return res.status(401).json({
+        success: false,
+        error: 'Credenziali non valide'
+      });
+    }
+
+    // Aggiorna ultimo login
+    await db.updateUserLastLogin(user.id);
+
+    // Crea sessione
+    req.session.userId = user.id;
+    req.session.username = user.username;
+    req.session.role = user.role;
+
+    res.json({
+      success: true,
+      data: {
+        id: user.id,
+        username: user.username,
+        role: user.role
+      },
+      message: 'Login effettuato con successo'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/auth/logout
+ * Logout utente
+ */
+app.post('/api/auth/logout', (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      return res.status(500).json({
+        success: false,
+        error: 'Errore durante il logout'
+      });
+    }
+    res.json({
+      success: true,
+      message: 'Logout effettuato con successo'
+    });
+  });
+});
+
+/**
+ * GET /api/auth/session
+ * Verifica sessione corrente
+ */
+app.get('/api/auth/session', (req, res) => {
+  if (req.session && req.session.userId) {
+    res.json({
+      success: true,
+      data: {
+        id: req.session.userId,
+        username: req.session.username,
+        role: req.session.role
+      }
+    });
+  } else {
+    res.status(401).json({
+      success: false,
+      error: 'Nessuna sessione attiva'
+    });
+  }
+});
+
+// ==================== NOTIFICATIONS ROUTES ====================
+
+/**
+ * GET /api/notifications
+ * Ottiene le notifiche
+ */
+app.get('/api/notifications', async (req, res) => {
+  try {
+    const unreadOnly = req.query.unread === 'true';
+    const limit = parseInt(req.query.limit) || 50;
+    
+    const notifications = await db.getNotifications(unreadOnly, limit);
+    res.json({
+      success: true,
+      data: notifications
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * PUT /api/notifications/:id/read
+ * Marca una notifica come letta
+ */
+app.put('/api/notifications/:id/read', async (req, res) => {
+  try {
+    await db.markNotificationAsRead(req.params.id);
+    res.json({
+      success: true,
+      message: 'Notifica marcata come letta'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * PUT /api/notifications/read-all
+ * Marca tutte le notifiche come lette
+ */
+app.put('/api/notifications/read-all', async (req, res) => {
+  try {
+    const result = await db.markAllNotificationsAsRead();
+    res.json({
+      success: true,
+      data: result,
+      message: 'Tutte le notifiche marcate come lette'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * DELETE /api/notifications/:id
+ * Elimina una notifica
+ */
+app.delete('/api/notifications/:id', async (req, res) => {
+  try {
+    await db.deleteNotification(req.params.id);
+    res.json({
+      success: true,
+      message: 'Notifica eliminata'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// ==================== HISTORICAL DATA ROUTES ====================
+
+/**
+ * GET /api/historical
+ * Ottiene i dati storici
+ */
+app.get('/api/historical', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 100;
+    const data = await db.getHistoricalData(limit);
+    res.json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/historical/range
+ * Ottiene i dati storici per un range temporale
+ */
+app.get('/api/historical/range', async (req, res) => {
+  try {
+    const { start, end } = req.query;
+    
+    if (!start || !end) {
+      return res.status(400).json({
+        success: false,
+        error: 'Parametri start e end sono obbligatori'
+      });
+    }
+    
+    const data = await db.getHistoricalDataByTimeRange(start, end);
+    res.json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // ==================== CONFIGURATION ROUTES ====================
 
 /**
  * GET /api/config
- * Ottiene tutte le configurazioni RPC
+ * Ottiene tutte le configurazioni RPC (solo admin)
  */
-app.get('/api/config', async (req, res) => {
+app.get('/api/config', requireAdmin, async (req, res) => {
   try {
     const configs = await db.getAllConfigs();
     res.json({
@@ -112,9 +369,9 @@ app.get('/api/config/active', async (req, res) => {
 
 /**
  * GET /api/config/:id
- * Ottiene una configurazione specifica
+ * Ottiene una configurazione specifica (solo admin)
  */
-app.get('/api/config/:id', async (req, res) => {
+app.get('/api/config/:id', requireAdmin, async (req, res) => {
   try {
     const config = await db.getConfigById(req.params.id);
     if (config) {
@@ -141,9 +398,9 @@ app.get('/api/config/:id', async (req, res) => {
 
 /**
  * POST /api/config
- * Crea una nuova configurazione RPC
+ * Crea una nuova configurazione RPC (solo admin)
  */
-app.post('/api/config', async (req, res) => {
+app.post('/api/config', requireAdmin, async (req, res) => {
   try {
     const { host, port, use_https, requires_auth, username, password, is_active } = req.body;
     
@@ -193,9 +450,9 @@ app.post('/api/config', async (req, res) => {
 
 /**
  * PUT /api/config/:id
- * Aggiorna una configurazione esistente
+ * Aggiorna una configurazione esistente (solo admin)
  */
-app.put('/api/config/:id', async (req, res) => {
+app.put('/api/config/:id', requireAdmin, async (req, res) => {
   try {
     const { host, port, use_https, requires_auth, username, password, is_active } = req.body;
     const configId = req.params.id;
@@ -280,9 +537,9 @@ app.post('/api/config/:id/activate', async (req, res) => {
 
 /**
  * DELETE /api/config/:id
- * Elimina una configurazione
+ * Elimina una configurazione (solo admin)
  */
-app.delete('/api/config/:id', async (req, res) => {
+app.delete('/api/config/:id', requireAdmin, async (req, res) => {
   try {
     const configId = req.params.id;
     const config = await db.getConfigById(configId);
@@ -317,9 +574,9 @@ app.delete('/api/config/:id', async (req, res) => {
 
 /**
  * POST /api/config/test
- * Testa una configurazione RPC senza salvarla
+ * Testa una configurazione RPC senza salvarla (solo admin)
  */
-app.post('/api/config/test', async (req, res) => {
+app.post('/api/config/test', requireAdmin, async (req, res) => {
   try {
     const { host, port, use_https, requires_auth, username, password } = req.body;
     
@@ -780,8 +1037,9 @@ app.use((err, req, res, next) => {
 });
 
 // Avvia il server
-app.listen(PORT, async () => {
+server.listen(PORT, async () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(`🔌 WebSocket server ready`);
   
   try {
     const activeConfig = await db.getActiveConfig();
@@ -820,4 +1078,104 @@ app.listen(PORT, async () => {
   console.log(`  POST /api/rpc`);
 });
 
-module.exports = app;
+// ==================== WEBSOCKET SETUP ====================
+
+io.on('connection', (socket) => {
+  console.log(`🔌 Client connesso: ${socket.id}`);
+  
+  socket.on('disconnect', () => {
+    console.log(`🔌 Client disconnesso: ${socket.id}`);
+  });
+  
+  socket.on('subscribe', (channel) => {
+    socket.join(channel);
+    console.log(`📡 Client ${socket.id} iscritto al canale: ${channel}`);
+  });
+  
+  socket.on('unsubscribe', (channel) => {
+    socket.leave(channel);
+    console.log(`📡 Client ${socket.id} disiscritto dal canale: ${channel}`);
+  });
+});
+
+// Funzione per inviare aggiornamenti real-time
+async function broadcastNetworkStats() {
+  try {
+    if (!rpcClient) return;
+    
+    const [info, connections] = await Promise.all([
+      rpcClient.getInfo(),
+      rpcClient.getConnections().catch(() => ({ connections: [] }))
+    ]);
+    
+    // Calcola la percentuale di sync
+    const syncPercentage = info.target_height && info.target_height > 0 
+      ? ((info.height / info.target_height) * 100).toFixed(2) 
+      : 100;
+    
+    const stats = {
+      timestamp: Date.now(),
+      height: info.height,
+      difficulty: info.difficulty,
+      hashrate: info.difficulty / 120, // Hashrate stimato (difficulty / block time)
+      txPoolSize: info.tx_pool_size || 0,
+      incomingConnections: connections.connections?.filter(c => c.incoming).length || 0,
+      outgoingConnections: connections.connections?.filter(c => !c.incoming).length || 0,
+      networkHashrate: info.difficulty / 120,
+      blockReward: info.block_size_limit,
+      syncPercentage: syncPercentage
+    };
+    
+    // Salva i dati storici ogni 30 secondi (ogni 6 broadcast)
+    if (!broadcastNetworkStats.counter) {
+      broadcastNetworkStats.counter = 0;
+    }
+    broadcastNetworkStats.counter++;
+    
+    if (broadcastNetworkStats.counter >= 6) {
+      await db.saveHistoricalData({
+        height: stats.height,
+        difficulty: stats.difficulty,
+        hashrate: stats.hashrate,
+        tx_pool_size: stats.txPoolSize,
+        incoming_connections: stats.incomingConnections,
+        outgoing_connections: stats.outgoingConnections
+      }).catch(err => console.error('❌ Errore salvataggio dati storici:', err.message));
+      
+      broadcastNetworkStats.counter = 0;
+    }
+    
+    io.to('network-stats').emit('network-stats', stats);
+  } catch (error) {
+    console.error('❌ Errore broadcast stats:', error.message);
+  }
+}
+
+// Avvia broadcast ogni 5 secondi
+setInterval(broadcastNetworkStats, 5000);
+
+// Pulizia dati storici ogni giorno (mantieni ultimi 30 giorni)
+setInterval(async () => {
+  try {
+    const result = await db.cleanOldHistoricalData(30);
+    if (result.deleted > 0) {
+      console.log(`🗑️  Eliminati ${result.deleted} record storici obsoleti`);
+    }
+  } catch (error) {
+    console.error('❌ Errore pulizia dati storici:', error.message);
+  }
+}, 24 * 60 * 60 * 1000); // Ogni 24 ore
+
+// Pulizia notifiche vecchie ogni giorno (mantieni ultime 7 giorni se lette)
+setInterval(async () => {
+  try {
+    const result = await db.cleanOldNotifications(7);
+    if (result.deleted > 0) {
+      console.log(`🗑️  Eliminate ${result.deleted} notifiche obsolete`);
+    }
+  } catch (error) {
+    console.error('❌ Errore pulizia notifiche:', error.message);
+  }
+}, 24 * 60 * 60 * 1000); // Ogni 24 ore
+
+module.exports = { app, server, io };

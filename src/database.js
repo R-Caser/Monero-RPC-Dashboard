@@ -50,6 +50,42 @@ class Database {
         )
       `;
 
+      const createUsersTable = `
+        CREATE TABLE IF NOT EXISTS users (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          username TEXT UNIQUE NOT NULL,
+          password TEXT NOT NULL,
+          role TEXT NOT NULL DEFAULT 'viewer',
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          last_login DATETIME
+        )
+      `;
+
+      const createHistoricalDataTable = `
+        CREATE TABLE IF NOT EXISTS historical_data (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          height INTEGER,
+          difficulty INTEGER,
+          hashrate REAL,
+          tx_pool_size INTEGER,
+          incoming_connections INTEGER,
+          outgoing_connections INTEGER,
+          timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `;
+
+      const createNotificationsTable = `
+        CREATE TABLE IF NOT EXISTS notifications (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          type TEXT NOT NULL,
+          severity TEXT DEFAULT 'info',
+          title TEXT NOT NULL,
+          message TEXT NOT NULL,
+          is_read INTEGER DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `;
+
       this.db.run(createConfigTable, (err) => {
         if (err) {
           console.error('❌ Errore creazione tabella rpc_config:', err.message);
@@ -64,11 +100,42 @@ class Database {
               reject(err);
             } else {
               console.log('✅ Tabella app_settings creata/verificata');
-              // Inserisci configurazione di default se non esiste
-              this.initDefaultConfig()
-                .then(() => this.initDefaultSettings())
-                .then(resolve)
-                .catch(reject);
+              
+              // Crea tabella utenti
+              this.db.run(createUsersTable, (err) => {
+                if (err) {
+                  console.error('❌ Errore creazione tabella users:', err.message);
+                  reject(err);
+                } else {
+                  console.log('✅ Tabella users creata/verificata');
+                  
+                  // Crea tabella dati storici
+                  this.db.run(createHistoricalDataTable, (err) => {
+                    if (err) {
+                      console.error('❌ Errore creazione tabella historical_data:', err.message);
+                      reject(err);
+                    } else {
+                      console.log('✅ Tabella historical_data creata/verificata');
+                      
+                      // Crea tabella notifiche
+                      this.db.run(createNotificationsTable, (err) => {
+                        if (err) {
+                          console.error('❌ Errore creazione tabella notifications:', err.message);
+                          reject(err);
+                        } else {
+                          console.log('✅ Tabella notifications creata/verificata');
+                          // Inserisci configurazione di default se non esiste
+                          this.initDefaultConfig()
+                            .then(() => this.initDefaultSettings())
+                            .then(() => this.initDefaultUser())
+                            .then(resolve)
+                            .catch(reject);
+                        }
+                      });
+                    }
+                  });
+                }
+              });
             }
           });
         }
@@ -396,6 +463,230 @@ class Database {
           console.log('✅ Connessione al database chiusa');
           resolve();
         }
+      });
+    });
+  }
+
+  // ==================== USER MANAGEMENT ====================
+
+  initDefaultUser() {
+    return new Promise((resolve, reject) => {
+      const checkQuery = 'SELECT COUNT(*) as count FROM users';
+      
+      this.db.get(checkQuery, [], (err, row) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        if (row.count === 0) {
+          // Crea utente admin di default
+          const bcrypt = require('bcryptjs');
+          const hashedPassword = bcrypt.hashSync('admin', 10);
+          
+          const insertQuery = `
+            INSERT INTO users (username, password, role)
+            VALUES (?, ?, ?)
+          `;
+          
+          this.db.run(insertQuery, ['admin', hashedPassword, 'admin'], (err) => {
+            if (err) {
+              reject(err);
+            } else {
+              console.log('👤 Utente admin creato (username: admin, password: admin)');
+              resolve();
+            }
+          });
+        } else {
+          resolve();
+        }
+      });
+    });
+  }
+
+  getUserByUsername(username) {
+    return new Promise((resolve, reject) => {
+      const query = 'SELECT * FROM users WHERE username = ?';
+      this.db.get(query, [username], (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
+  }
+
+  updateUserLastLogin(userId) {
+    return new Promise((resolve, reject) => {
+      const query = 'UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?';
+      this.db.run(query, [userId], function(err) {
+        if (err) reject(err);
+        else resolve({ changes: this.changes });
+      });
+    });
+  }
+
+  createUser(username, password, role = 'viewer') {
+    return new Promise((resolve, reject) => {
+      const bcrypt = require('bcryptjs');
+      const hashedPassword = bcrypt.hashSync(password, 10);
+      
+      const query = `
+        INSERT INTO users (username, password, role)
+        VALUES (?, ?, ?)
+      `;
+      
+      this.db.run(query, [username, hashedPassword, role], function(err) {
+        if (err) reject(err);
+        else resolve({ id: this.lastID, username, role });
+      });
+    });
+  }
+
+  getAllUsers() {
+    return new Promise((resolve, reject) => {
+      const query = 'SELECT id, username, role, created_at, last_login FROM users';
+      this.db.all(query, [], (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      });
+    });
+  }
+
+  // ==================== HISTORICAL DATA ====================
+
+  saveHistoricalData(data) {
+    return new Promise((resolve, reject) => {
+      const query = `
+        INSERT INTO historical_data 
+        (height, difficulty, hashrate, tx_pool_size, incoming_connections, outgoing_connections)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `;
+      
+      this.db.run(query, [
+        data.height,
+        data.difficulty,
+        data.hashrate,
+        data.tx_pool_size,
+        data.incoming_connections,
+        data.outgoing_connections
+      ], function(err) {
+        if (err) reject(err);
+        else resolve({ id: this.lastID });
+      });
+    });
+  }
+
+  getHistoricalData(limit = 100) {
+    return new Promise((resolve, reject) => {
+      const query = `
+        SELECT * FROM historical_data 
+        ORDER BY timestamp DESC 
+        LIMIT ?
+      `;
+      this.db.all(query, [limit], (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      });
+    });
+  }
+
+  getHistoricalDataByTimeRange(startTime, endTime) {
+    return new Promise((resolve, reject) => {
+      const query = `
+        SELECT * FROM historical_data 
+        WHERE timestamp BETWEEN ? AND ?
+        ORDER BY timestamp ASC
+      `;
+      this.db.all(query, [startTime, endTime], (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      });
+    });
+  }
+
+  cleanOldHistoricalData(daysToKeep = 30) {
+    return new Promise((resolve, reject) => {
+      const query = `
+        DELETE FROM historical_data 
+        WHERE timestamp < datetime('now', '-' || ? || ' days')
+      `;
+      this.db.run(query, [daysToKeep], function(err) {
+        if (err) reject(err);
+        else resolve({ deleted: this.changes });
+      });
+    });
+  }
+
+  // ==================== NOTIFICATIONS ====================
+
+  createNotification(type, title, message, severity = 'info') {
+    return new Promise((resolve, reject) => {
+      const query = `
+        INSERT INTO notifications (type, severity, title, message)
+        VALUES (?, ?, ?, ?)
+      `;
+      
+      this.db.run(query, [type, severity, title, message], function(err) {
+        if (err) reject(err);
+        else resolve({ id: this.lastID });
+      });
+    });
+  }
+
+  getNotifications(unreadOnly = false, limit = 50) {
+    return new Promise((resolve, reject) => {
+      let query = `
+        SELECT * FROM notifications 
+        ${unreadOnly ? 'WHERE is_read = 0' : ''}
+        ORDER BY created_at DESC 
+        LIMIT ?
+      `;
+      
+      this.db.all(query, [limit], (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      });
+    });
+  }
+
+  markNotificationAsRead(id) {
+    return new Promise((resolve, reject) => {
+      const query = 'UPDATE notifications SET is_read = 1 WHERE id = ?';
+      this.db.run(query, [id], function(err) {
+        if (err) reject(err);
+        else resolve({ changes: this.changes });
+      });
+    });
+  }
+
+  markAllNotificationsAsRead() {
+    return new Promise((resolve, reject) => {
+      const query = 'UPDATE notifications SET is_read = 1 WHERE is_read = 0';
+      this.db.run(query, [], function(err) {
+        if (err) reject(err);
+        else resolve({ changes: this.changes });
+      });
+    });
+  }
+
+  deleteNotification(id) {
+    return new Promise((resolve, reject) => {
+      const query = 'DELETE FROM notifications WHERE id = ?';
+      this.db.run(query, [id], function(err) {
+        if (err) reject(err);
+        else resolve({ changes: this.changes });
+      });
+    });
+  }
+
+  cleanOldNotifications(daysToKeep = 7) {
+    return new Promise((resolve, reject) => {
+      const query = `
+        DELETE FROM notifications 
+        WHERE is_read = 1 AND created_at < datetime('now', '-' || ? || ' days')
+      `;
+      this.db.run(query, [daysToKeep], function(err) {
+        if (err) reject(err);
+        else resolve({ deleted: this.changes });
       });
     });
   }

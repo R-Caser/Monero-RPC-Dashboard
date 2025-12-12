@@ -59,7 +59,7 @@ function initSectionStates() {
   // Sezioni che devono essere chiuse di default
   const closedByDefault = ['blockvis', 'blocksearch', 'txpool', 'customrpc', 'feeestimate'];
   // Sezioni che devono essere aperte di default
-  const openByDefault = ['network', 'details'];
+  const openByDefault = ['network', 'details', 'charts'];
   
   const allSections = [...closedByDefault, ...openByDefault];
   
@@ -109,6 +109,11 @@ function toggleTheme() {
   document.body.setAttribute('data-theme', newTheme);
   localStorage.setItem('theme', newTheme);
   updateThemeIcon(newTheme);
+  
+  // Aggiorna i colori dei grafici se esistono
+  if (typeof updateChartTheme === 'function') {
+    setTimeout(() => updateChartTheme(), 100);
+  }
 }
 
 // Aggiorna icona tema
