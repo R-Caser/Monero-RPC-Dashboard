@@ -1293,11 +1293,12 @@ async function broadcastNetworkStats() {
       isNewBlock: isNewBlock
     };
     
-    // Se è un nuovo blocco, forza il broadcast e salva i dati storici
+    // Salva i dati storici SOLO quando viene rilevato un nuovo blocco validato
+    // Questo assicura che i grafici mostrino solo dati definitivi di blocchi già minati
     if (isNewBlock) {
       console.log(`🆕 Nuovo blocco rilevato! Altezza: ${info.height} | TX nel blocco: ${lastTxPoolSize}`);
       
-      // Salva immediatamente i dati storici per il nuovo blocco
+      // Salva immediatamente i dati storici per il nuovo blocco validato
       await db.saveHistoricalData({
         height: stats.height,
         difficulty: stats.difficulty,
@@ -1306,29 +1307,9 @@ async function broadcastNetworkStats() {
         incoming_connections: stats.incomingConnections,
         outgoing_connections: stats.outgoingConnections
       }).catch(err => console.error('❌ Errore salvataggio dati storici:', err.message));
-      
-      // Reset counter per sincronizzare il salvataggio ogni 30 secondi
-      broadcastNetworkStats.counter = 0;
-    } else {
-      // Salva i dati storici ogni 30 secondi (ogni 6 broadcast) solo se non è un nuovo blocco
-      if (!broadcastNetworkStats.counter) {
-        broadcastNetworkStats.counter = 0;
-      }
-      broadcastNetworkStats.counter++;
-      
-      if (broadcastNetworkStats.counter >= 6) {
-        await db.saveHistoricalData({
-          height: stats.height,
-          difficulty: stats.difficulty,
-          hashrate: stats.hashrate,
-          tx_pool_size: stats.txPoolSize,
-          incoming_connections: stats.incomingConnections,
-          outgoing_connections: stats.outgoingConnections
-        }).catch(err => console.error('❌ Errore salvataggio dati storici:', err.message));
-        
-        broadcastNetworkStats.counter = 0;
-      }
     }
+    // NON salvare dati intermedi di blocchi non ancora validati
+    // per mantenere solo valori definitivi nel database
     
     // Aggiorna i valori per il prossimo check
     lastKnownHeight = info.height;
