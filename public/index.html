@@ -231,26 +231,24 @@
 
           <!-- Blockchain Scan Progress -->
           <div class="scan-progress-container" id="scanProgressContainer" style="display: none;">
-            <div class="scan-progress-header">
-              <span class="scan-progress-icon">🔍</span>
-              <span class="scan-progress-title" data-i18n="charts.scan_progress">Blockchain Scan Progress</span>
-            </div>
-            <div class="scan-progress-content">
-              <div class="scan-progress-info">
-                <span data-i18n="charts.scan_last_block">Last scanned block:</span>
-                <strong id="scanLastBlock">-</strong>
-              </div>
-              <div class="scan-progress-info">
-                <span data-i18n="charts.scan_total_blocks">Total blocks scanned:</span>
-                <strong id="scanTotalBlocks">-</strong>
-              </div>
-              <div class="scan-progress-status" id="scanStatus">
-                <span class="scan-status-badge" id="scanStatusBadge">⏳</span>
-                <span id="scanStatusText" data-i18n="charts.scan_in_progress">Scanning in progress...</span>
-              </div>
-              <div class="scan-progress-bar">
-                <div class="scan-progress-fill" id="scanProgressFill" style="width: 0%"></div>
-              </div>
+            <span class="scan-progress-icon">🔍</span>
+            <span class="scan-progress-label" data-i18n="charts.scan_progress">Scan:</span>
+            <span class="scan-progress-info">
+              <span data-i18n="charts.scan_block">Block:</span>
+              <strong id="scanLastBlock">-</strong>
+            </span>
+            <span class="scan-progress-separator">|</span>
+            <span class="scan-progress-info">
+              <span data-i18n="charts.scan_total">Total:</span>
+              <strong id="scanTotalBlocks">-</strong>
+            </span>
+            <span class="scan-progress-separator">|</span>
+            <span class="scan-progress-status" id="scanStatus">
+              <span class="scan-status-badge" id="scanStatusBadge">⏳</span>
+              <span id="scanStatusText" data-i18n="charts.scan_in_progress">Scanning...</span>
+            </span>
+            <div class="scan-progress-bar">
+              <div class="scan-progress-fill" id="scanProgressFill" style="width: 0%"></div>
             </div>
           </div>
 
@@ -591,8 +589,8 @@
       // Carica e mostra il progresso della scansione blockchain
       if (typeof loadScanProgress === 'function') {
         loadScanProgress();
-        // Aggiorna il progresso ogni 30 secondi
-        setInterval(loadScanProgress, 30000);
+        // Aggiorna il progresso ogni 5 secondi (sincronizzato con broadcast WebSocket)
+        setInterval(loadScanProgress, 5000);
       }
       
       // Aggiorna notifiche ogni 30 secondi

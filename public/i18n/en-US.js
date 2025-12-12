@@ -144,11 +144,11 @@ registerTranslation('en-US', {
   'charts.connections_history': 'Connections',
   'charts.difficulty_history': 'Network Difficulty',
   'charts.txpool_history': 'Transaction Pool',
-  'charts.scan_progress': 'Blockchain Scan Progress',
-  'charts.scan_last_block': 'Last scanned block:',
-  'charts.scan_total_blocks': 'Total blocks scanned:',
-  'charts.scan_in_progress': 'Scanning in progress',
-  'charts.scan_completed': 'Scan completed',
+  'charts.scan_progress': 'Scan:',
+  'charts.scan_block': 'Block:',
+  'charts.scan_total': 'Total:',
+  'charts.scan_in_progress': 'In progress',
+  'charts.scan_completed': 'Completed',
   
   // Common
   'common.error': 'Error:',
