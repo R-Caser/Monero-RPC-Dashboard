@@ -1,0 +1,268 @@
+// Sistema di Internazionalizzazione (i18n)
+
+const translations = {
+  it: {
+    // Header
+    'app.title': 'Monero RPC Dashboard',
+    'header.status.connecting': 'Connessione...',
+    'header.status.connected': 'Connesso',
+    'header.status.disconnected': 'Disconnesso',
+    'header.status.error': 'Errore',
+    'header.config': 'Configurazione',
+    
+    // Configuration Panel
+    'config.title': 'Configurazione Nodo RPC',
+    'config.host': 'Host / IP:',
+    'config.port': 'Porta:',
+    'config.https': 'Usa HTTPS',
+    'config.auth': 'Richiede Autenticazione',
+    'config.username': 'Username:',
+    'config.password': 'Password:',
+    'config.test': 'Testa Connessione',
+    'config.save': 'Salva e Attiva',
+    'config.saved': 'Configurazioni Salvate',
+    'config.loading': 'Caricamento...',
+    'config.none': 'Nessuna configurazione salvata.',
+    'config.active': 'ATTIVA',
+    'config.id': 'ID:',
+    'config.auth.yes': 'Sì',
+    'config.auth.no': 'No',
+    'config.created': 'Creata:',
+    'config.activate': 'Attiva',
+    'config.edit': 'Modifica',
+    'config.delete': 'Elimina',
+    'config.test.running': 'Test connessione in corso...',
+    'config.test.success': 'Connessione riuscita!',
+    'config.test.network': 'Network:',
+    'config.test.height': 'Altezza:',
+    'config.test.error': 'Errore:',
+    'config.test.required': 'Host e porta sono obbligatori',
+    'config.save.success': 'Configurazione salvata e attivata con successo!',
+    'config.activate.confirm': 'Vuoi attivare questa configurazione?',
+    'config.activate.success': 'Configurazione attivata!',
+    'config.delete.confirm': 'Sei sicuro di voler eliminare questa configurazione?',
+    'config.delete.success': 'Configurazione eliminata!',
+    
+    // Settings
+    'settings.title': 'Impostazioni Generali',
+    'settings.autorefresh': 'Abilita auto-refresh Network Information',
+    'settings.interval': 'Intervallo (secondi):',
+    'settings.intervalhelp': 'Tra 5 e 300 secondi',
+    
+    // Network Info Section
+    'network.title': 'Informazioni Rete',
+    'network.height': 'Altezza Blockchain:',
+    'network.blockcount': 'Numero Blocchi:',
+    'network.connections': 'Connessioni:',
+    'network.difficulty': 'Difficoltà:',
+    'network.version': 'Versione:',
+    'network.sync': 'Stato Sync:',
+    'network.refresh': 'Aggiorna',
+    
+    // Details Section
+    'details.title': 'Altre Informazioni',
+    'details.freespace': 'Spazio Libero:',
+    'details.dbsize': 'Dimensione Database:',
+    'details.txcount': 'Totale Transazioni:',
+    'details.txpool': 'TX in Pool:',
+    'details.uptime': 'Uptime Nodo:',
+    'details.update': 'Aggiornamento:',
+    
+    // Block Visualization Section
+    'blockvis.title': 'Visualizzazione Blocco',
+    'blockvis.height': 'Altezza Blockchain:',
+    'blockvis.txpool': 'TX in Attesa:',
+    
+    // Block Search Section
+    'block.title': 'Ricerca Blocco',
+    'block.search.placeholder': 'Inserisci altezza blocco o hash...',
+    'block.search.button': 'Cerca',
+    'block.height': 'Altezza:',
+    'block.hash': 'Hash:',
+    'block.timestamp': 'Timestamp:',
+    'block.size': 'Dimensione:',
+    'block.transactions': 'Transazioni:',
+    'block.reward': 'Ricompensa:',
+    
+    // Transaction Pool Section
+    'txpool.title': 'Transaction Pool',
+    'txpool.load': 'Carica Transazioni in Attesa',
+    'txpool.count': 'Transazioni in pool:',
+    'txpool.size': 'Dimensione totale:',
+    
+    // Custom RPC Section
+    'rpc.title': 'Chiamata RPC Personalizzata',
+    'rpc.method': 'Metodo:',
+    'rpc.method.placeholder': 'es: get_block_count',
+    'rpc.params': 'Parametri (JSON):',
+    'rpc.execute': 'Esegui',
+    
+    // Common
+    'common.error': 'Errore:',
+    'common.loading': 'Caricamento...',
+    'common.bytes': 'byte',
+    'common.authentication': 'Autenticazione:',
+  },
+  en: {
+    // Header
+    'app.title': 'Monero RPC Dashboard',
+    'header.status.connecting': 'Connecting...',
+    'header.status.connected': 'Connected',
+    'header.status.disconnected': 'Disconnected',
+    'header.status.error': 'Error',
+    'header.config': 'Configuration',
+    
+    // Configuration Panel
+    'config.title': 'RPC Node Configuration',
+    'config.host': 'Host / IP:',
+    'config.port': 'Port:',
+    'config.https': 'Use HTTPS',
+    'config.auth': 'Requires Authentication',
+    'config.username': 'Username:',
+    'config.password': 'Password:',
+    'config.test': 'Test Connection',
+    'config.save': 'Save and Activate',
+    'config.saved': 'Saved Configurations',
+    'config.loading': 'Loading...',
+    'config.none': 'No saved configurations.',
+    'config.active': 'ACTIVE',
+    'config.id': 'ID:',
+    'config.auth.yes': 'Yes',
+    'config.auth.no': 'No',
+    'config.created': 'Created:',
+    'config.activate': 'Activate',
+    'config.edit': 'Edit',
+    'config.delete': 'Delete',
+    'config.test.running': 'Testing connection...',
+    'config.test.success': 'Connection successful!',
+    'config.test.network': 'Network:',
+    'config.test.height': 'Height:',
+    'config.test.error': 'Error:',
+    'config.test.required': 'Host and port are required',
+    'config.save.success': 'Configuration saved and activated successfully!',
+    'config.activate.confirm': 'Do you want to activate this configuration?',
+    'config.activate.success': 'Configuration activated!',
+    'config.delete.confirm': 'Are you sure you want to delete this configuration?',
+    'config.delete.success': 'Configuration deleted!',
+    
+    // Settings
+    'settings.title': 'General Settings',
+    'settings.autorefresh': 'Enable Network Information auto-refresh',
+    'settings.interval': 'Interval (seconds):',
+    'settings.intervalhelp': 'Between 5 and 300 seconds',
+    
+    // Network Info Section
+    'network.title': 'Network Information',
+    'network.height': 'Blockchain Height:',
+    'network.blockcount': 'Block Count:',
+    'network.connections': 'Connections:',
+    'network.difficulty': 'Difficulty:',
+    'network.version': 'Version:',
+    'network.sync': 'Sync Status:',
+    'network.refresh': 'Refresh',
+    
+    // Details Section
+    'details.title': 'Additional Information',
+    'details.freespace': 'Free Space:',
+    'details.dbsize': 'Database Size:',
+    'details.txcount': 'Total Transactions:',
+    'details.txpool': 'TX in Pool:',
+    'details.uptime': 'Node Uptime:',
+    'details.update': 'Update:',
+    
+    // Block Visualization Section
+    'blockvis.title': 'Block Visualization',
+    'blockvis.height': 'Blockchain Height:',
+    'blockvis.txpool': 'TX Pending:',
+    
+    // Block Search Section
+    'block.title': 'Block Search',
+    'block.search.placeholder': 'Enter block height or hash...',
+    'block.search.button': 'Search',
+    'block.height': 'Height:',
+    'block.hash': 'Hash:',
+    'block.timestamp': 'Timestamp:',
+    'block.size': 'Size:',
+    'block.transactions': 'Transactions:',
+    'block.reward': 'Reward:',
+    
+    // Transaction Pool Section
+    'txpool.title': 'Transaction Pool',
+    'txpool.load': 'Load Pending Transactions',
+    'txpool.count': 'Transactions in pool:',
+    'txpool.size': 'Total size:',
+    
+    // Custom RPC Section
+    'rpc.title': 'Custom RPC Call',
+    'rpc.method': 'Method:',
+    'rpc.method.placeholder': 'e.g., get_block_count',
+    'rpc.params': 'Parameters (JSON):',
+    'rpc.execute': 'Execute',
+    
+    // Common
+    'common.error': 'Error:',
+    'common.loading': 'Loading...',
+    'common.bytes': 'bytes',
+    'common.authentication': 'Authentication:',
+  }
+};
+
+// Lingua corrente
+let currentLanguage = localStorage.getItem('language') || 'it';
+
+// Funzione per ottenere una traduzione
+function t(key) {
+  return translations[currentLanguage][key] || key;
+}
+
+// Funzione per cambiare lingua
+function setLanguage(lang) {
+  if (translations[lang]) {
+    currentLanguage = lang;
+    localStorage.setItem('language', lang);
+    updatePageLanguage();
+  }
+}
+
+// Funzione per ottenere la lingua corrente
+function getCurrentLanguage() {
+  return currentLanguage;
+}
+
+// Funzione per aggiornare tutti i testi della pagina
+function updatePageLanguage() {
+  // Aggiorna tutti gli elementi con attributo data-i18n
+  document.querySelectorAll('[data-i18n]').forEach(element => {
+    const key = element.getAttribute('data-i18n');
+    const translation = t(key);
+    if (translation && translation !== key) {
+      element.textContent = translation;
+    }
+  });
+  
+  // Aggiorna tutti i placeholder con attributo data-i18n-placeholder
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(element => {
+    const key = element.getAttribute('data-i18n-placeholder');
+    const translation = t(key);
+    if (translation && translation !== key) {
+      element.placeholder = translation;
+    }
+  });
+  
+  // Aggiorna il selettore di lingua
+  const langSelect = document.getElementById('languageSelect');
+  if (langSelect) {
+    langSelect.value = currentLanguage;
+  }
+  
+  // Ricarica le configurazioni salvate (per aggiornare le traduzioni)
+  const configPanel = document.getElementById('configPanel');
+  if (configPanel && configPanel.style.display !== 'none' && typeof loadSavedConfigs === 'function') {
+    loadSavedConfigs();
+  }
+}
+
+// Esporta le funzioni
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { t, setLanguage, getCurrentLanguage, updatePageLanguage };
+}
