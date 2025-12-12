@@ -15,6 +15,9 @@ A comprehensive web application for managing and monitoring Monero nodes through
 - **Live Network Stats**: Blockchain height, connections, difficulty
 - **WebSocket Updates**: Real-time data push every 5 seconds via Socket.IO
 - **Block-Based Charts**: Four Chart.js visualizations updated only on new blocks
+- **Multi-Period Views**: Real-time, 30 days, 3 months, 6 months, 1 year, 5 years, Max
+- **Aggregated Statistics**: Pre-calculated averages for long-term historical analysis
+- **Blockchain Scanner**: Automatic historical data aggregation from block 1
 - **Sync Status**: Real-time synchronization monitoring with visual indicators
 - **Node Information**: Version, uptime, update availability alerts
 - **Database Metrics**: Storage usage and free space monitoring
@@ -37,12 +40,16 @@ A comprehensive web application for managing and monitoring Monero nodes through
 - **Login Modal**: Clean authentication interface with logout functionality
 
 ### 📈 Data Management & Notifications
-- **Historical Data**: Automatic storage of network statistics every 30 seconds
-- **Data Retention**: 30-day rolling window for historical metrics
+- **Historical Data**: Automatic storage of network statistics for validated blocks only
+- **Aggregated Statistics**: Pre-calculated averages by period (daily, 3-day, weekly, monthly)
+- **Multi-Period Analysis**: View data from 30 days up to entire blockchain history
+- **Data Retention**: 30-day rolling window for real-time data, smart retention for aggregated data
+- **Blockchain Scanner**: Background process that aggregates historical data from block 1
 - **Smart Notifications**: Multi-level alert system (info, warning, error, success)
 - **Toast Alerts**: Real-time visual notifications for important events
 - **Notification Panel**: Centralized notification center with read/unread status
 - **Auto-cleanup**: Automatic removal of old data and read notifications
+- **Progress Tracking**: Scanner resumes from last scanned block on restart
 
 ### 🌍 Internationalization
 - **Multi-language Support**: Italian and English with easy extensibility
@@ -115,8 +122,8 @@ http://localhost:3000
 ```
 Monero-RPC-Dashboard/
 ├── src/
-│   ├── server.js          # Express server, WebSocket, and API routes
-│   ├── database.js        # SQLite database with 5 tables
+│   ├── server.js          # Express server, WebSocket, API routes, and blockchain scanner
+│   ├── database.js        # SQLite database with 7 tables (including aggregated_statistics)
 │   ├── moneroRPC.js       # Monero RPC client wrapper
 │   └── auth.js            # RBAC middleware and authentication
 ├── public/
@@ -186,6 +193,11 @@ Monero-RPC-Dashboard/
 ### Historical Data & Analytics
 - `GET /api/historical-data` - Get historical network statistics
 - Query params: `period` (1h, 24h, 7d, 30d), `metric` (hashrate, difficulty, connections, txpool)
+- `GET /api/aggregated-stats/:type` - Get aggregated statistics by period
+- Types: `daily`, `3days`, `weekly`, `monthly`
+- Query params: `limit` (default: 60)
+- `GET /api/scan-progress` - Get blockchain scanning progress
+- `POST /api/rescan-blockchain` - Force blockchain rescan (admin only)
 
 ### Notifications
 - `GET /api/notifications` - Get all notifications
@@ -215,9 +227,19 @@ Monero-RPC-Dashboard/
 - **Connections Chart**: Active peer connections per block
 - **Difficulty Chart**: Mining difficulty changes per block
 - **TX Pool Chart**: Transaction pool size per block
+- **Period Selector**: Choose between real-time (60 blocks) or historical periods
+- **Multi-Period Views**:
+  - **Real-Time**: Last 60 validated blocks with weighted moving average
+  - **30 Days**: Daily averages (last 60 days retention)
+  - **3 Months**: 3-day averages (last 180 days retention)
+  - **6 Months**: Weekly averages (last 420 days retention)
+  - **1 Year**: Weekly averages (last 420 days retention)
+  - **5 Years**: Monthly averages (infinite retention)
+  - **Max**: Monthly averages since blockchain start (infinite retention)
 - **Charts Update**: Only on new block detection for cleaner visualization
 - **Live Data Display**: Real-time stats update every 5 seconds via WebSocket
 - **Background Processing**: Server continues collecting data even without active clients
+- **Weighted Moving Average**: Trend lines shown in real-time mode
 - Dynamic theme-aware chart colors
 
 ### Authentication & Security
@@ -317,6 +339,9 @@ This project is licensed under the **GPL-3.0 License** - see the [LICENSE](LICEN
 - [x] Block-based statistics updates (Real-time stats update on new blocks)
 - [x] Historical data persistence (Charts populate with database records on page load)
 - [x] Weighted moving average (Charts show trend lines for hashrate, difficulty, and TX pool)
+- [x] Multi-period chart views (Real-time, 30 days, 3 months, 6 months, 1 year, 5 years, Max)
+- [x] Blockchain scanner (Automatic historical data aggregation from block 1)
+- [x] Aggregated statistics (Pre-calculated averages by period with smart retention)
 
 ### 🔜 Planned Features
 - [ ] **Export/Import configurations** - Backup and restore RPC configurations
