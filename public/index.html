@@ -431,6 +431,34 @@
     </footer>
   </div>
 
+  <!-- Login Modal -->
+  <div id="loginModal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>🔐 Login</h2>
+        <button class="btn btn-close" onclick="hideLoginModal()">✕</button>
+      </div>
+      <form onsubmit="handleLoginSubmit(event)">
+        <div class="form-group">
+          <label for="loginUsername">Username:</label>
+          <input type="text" id="loginUsername" class="input" required autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label for="loginPassword">Password:</label>
+          <input type="password" id="loginPassword" class="input" required autocomplete="current-password">
+        </div>
+        <div id="loginError" class="error-message"></div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="hideLoginModal()">Annulla</button>
+          <button type="submit" class="btn btn-primary">Login</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
   <!-- Socket.IO Client -->
   <script src="/socket.io/socket.io.js"></script>
   

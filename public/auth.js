@@ -345,3 +345,44 @@ function showNotification(severity, message) {
     setTimeout(() => container.removeChild(toast), 300);
   }, 3000);
 }
+
+// Mostra un toast temporaneo
+function showToast(message, type = 'info') {
+  const container = document.getElementById('toastContainer');
+  if (!container) {
+    console.warn('Toast container not found');
+    return;
+  }
+  
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  
+  const iconMap = {
+    success: '✅',
+    error: '❌',
+    warning: '⚠️',
+    info: 'ℹ️'
+  };
+  
+  toast.innerHTML = `
+    <span class="toast-icon">${iconMap[type] || iconMap.info}</span>
+    <span class="toast-message">${message}</span>
+  `;
+  
+  container.appendChild(toast);
+  
+  // Animazione di entrata
+  setTimeout(() => {
+    toast.classList.add('show');
+  }, 10);
+  
+  // Rimozione dopo 3 secondi
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => {
+      if (container.contains(toast)) {
+        container.removeChild(toast);
+      }
+    }, 300);
+  }, 3000);
+}
