@@ -47,6 +47,96 @@
   font-style: italic;
 }
 
+/* Blockchain Scan Progress */
+.scan-progress-container {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: var(--info-item-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  border-left: 3px solid var(--primary);
+}
+
+.scan-progress-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.scan-progress-icon {
+  font-size: 1.2rem;
+}
+
+.scan-progress-title {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.scan-progress-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.scan-progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.scan-progress-info strong {
+  color: var(--primary);
+  font-family: 'Courier New', monospace;
+}
+
+.scan-progress-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+  padding: 0.5rem;
+  background: var(--bg-secondary);
+  border-radius: 6px;
+}
+
+.scan-status-badge {
+  font-size: 1rem;
+}
+
+#scanStatusText {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.scan-progress-bar {
+  width: 100%;
+  height: 6px;
+  background: var(--bg-secondary);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 0.5rem;
+}
+
+.scan-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), #00ffcc);
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.scan-progress-container.completed {
+  border-left-color: #4CAF50;
+}
+
+.scan-progress-container.completed .scan-progress-fill {
+  background: linear-gradient(90deg, #4CAF50, #66BB6A);
+}
+
 .realtime-stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));

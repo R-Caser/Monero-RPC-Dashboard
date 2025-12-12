@@ -205,6 +205,68 @@ function updateAllCharts() {
   }
 }
 
+// Funzione per caricare e mostrare il progresso della scansione blockchain
+async function loadScanProgress() {
+  try {
+    const response = await fetch('/api/scan-progress');
+    const result = await response.json();
+    
+    if (result.success && result.progress) {
+      const progress = result.progress;
+      const container = document.getElementById('scanProgressContainer');
+      const lastBlock = document.getElementById('scanLastBlock');
+      const totalBlocks = document.getElementById('scanTotalBlocks');
+      const statusBadge = document.getElementById('scanStatusBadge');
+      const statusText = document.getElementById('scanStatusText');
+      const progressFill = document.getElementById('scanProgressFill');
+      
+      // Mostra il container
+      if (container) container.style.display = 'block';
+      
+      // Aggiorna i valori
+      if (lastBlock) lastBlock.textContent = `#${progress.last_scanned_height.toLocaleString()}`;
+      if (totalBlocks) totalBlocks.textContent = progress.total_blocks_scanned.toLocaleString();
+      
+      // Ottieni l'altezza corrente per calcolare la percentuale
+      const infoResponse = await fetch('/api/info');
+      const infoResult = await infoResponse.json();
+      
+      if (infoResult.success && infoResult.data && infoResult.data.height) {
+        const currentHeight = infoResult.data.height;
+        const percentage = Math.min(100, (progress.last_scanned_height / currentHeight) * 100);
+        
+        if (progressFill) {
+          progressFill.style.width = `${percentage.toFixed(1)}%`;
+        }
+        
+        // Aggiorna lo stato
+        if (progress.is_initial_scan_complete) {
+          if (statusBadge) statusBadge.textContent = '✅';
+          if (statusText) statusText.textContent = getCurrentTranslation('charts.scan_completed') || 'Scan completed';
+          if (container) container.classList.add('completed');
+        } else {
+          if (statusBadge) statusBadge.textContent = '⏳';
+          if (statusText) {
+            statusText.textContent = (getCurrentTranslation('charts.scan_in_progress') || 'Scanning...') + 
+              ` (${percentage.toFixed(1)}%)`;
+          }
+          if (container) container.classList.remove('completed');
+        }
+      }
+    }
+  } catch (error) {
+    console.error('❌ Errore caricamento progresso scansione:', error);
+  }
+}
+
+// Funzione helper per ottenere la traduzione corrente
+function getCurrentTranslation(key) {
+  if (typeof i18n !== 'undefined' && i18n.t) {
+    return i18n.t(key);
+  }
+  return null;
+}
+
 // Funzione per calcolare la media ponderata (weighted moving average)
 function calculateWeightedMovingAverage(data, windowSize = MOVING_AVG_WINDOW) {
   const result = [];

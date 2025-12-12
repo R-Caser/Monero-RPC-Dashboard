@@ -144,6 +144,11 @@ registerTranslation('it-IT', {
   'charts.connections_history': 'Connessioni',
   'charts.difficulty_history': 'Difficoltà Rete',
   'charts.txpool_history': 'Transaction Pool',
+  'charts.scan_progress': 'Progresso Scansione Blockchain',
+  'charts.scan_last_block': 'Ultimo blocco scansionato:',
+  'charts.scan_total_blocks': 'Totale blocchi scansionati:',
+  'charts.scan_in_progress': 'Scansione in corso',
+  'charts.scan_completed': 'Scansione completata',
   
   // Common
   'common.error': 'Errore:',
