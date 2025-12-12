@@ -45,7 +45,6 @@ function initWebSocket() {
 
   // Ascolta gli aggiornamenti delle statistiche di rete
   socket.on('network-stats', (stats) => {
-    console.log('📊 Statistiche ricevute:', stats);
     updateNetworkStatsRealtime(stats);
     updateCharts(stats);
   });

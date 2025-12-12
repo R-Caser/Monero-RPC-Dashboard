@@ -54,7 +54,7 @@
         
         <div class="config-content">
           <!-- Form Configurazione -->
-          <div class="config-form">
+          <form id="configForm" class="config-form" onsubmit="saveConfiguration(); return false;">
             <div class="form-group">
               <label for="configHost" data-i18n="config.host">Host / IP:</label>
               <input type="text" id="configHost" class="input" placeholder="192.168.100.29">
@@ -82,22 +82,22 @@
             <div id="authFields" style="display: none;">
               <div class="form-group">
                 <label for="configUsername" data-i18n="config.username">Username:</label>
-                <input type="text" id="configUsername" class="input" placeholder="username">
+                <input type="text" id="configUsername" class="input" placeholder="username" autocomplete="username">
               </div>
               
               <div class="form-group">
                 <label for="configPassword" data-i18n="config.password">Password:</label>
-                <input type="password" id="configPassword" class="input" placeholder="password">
+                <input type="password" id="configPassword" class="input" placeholder="password" autocomplete="current-password">
               </div>
             </div>
             
             <div class="config-actions">
-              <button class="btn btn-secondary" onclick="testConnection()" data-i18n="config.test">🔍 Testa Connessione</button>
-              <button class="btn btn-primary" onclick="saveConfiguration()" data-i18n="config.save">💾 Salva e Attiva</button>
+              <button type="button" class="btn btn-secondary" onclick="testConnection()" data-i18n="config.test">🔍 Testa Connessione</button>
+              <button type="submit" class="btn btn-primary" data-i18n="config.save">💾 Salva e Attiva</button>
             </div>
             
             <div id="configTestResult" class="result-container"></div>
-          </div>
+          </form>
           
           <!-- Impostazioni Auto-refresh -->
           <div class="config-section">
