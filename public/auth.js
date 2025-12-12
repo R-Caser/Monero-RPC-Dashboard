@@ -14,7 +14,14 @@ async function checkSession() {
       currentUser = result.data;
       updateUIForUser();
       return true;
+    } else if (response.status === 401) {
+      // 401 è normale quando l'utente non è loggato - non è un errore
+      currentUser = null;
+      updateUIForUser();
+      return false;
     } else {
+      // Altri errori (500, etc.) vengono loggati
+      console.error('Errore verifica sessione:', response.status, response.statusText);
       currentUser = null;
       updateUIForUser();
       return false;
