@@ -14,11 +14,12 @@ A comprehensive web application for managing and monitoring Monero nodes through
 ### 📊 Real-time Network Monitoring
 - **Live Network Stats**: Blockchain height, connections, difficulty
 - **WebSocket Updates**: Real-time data push every 5 seconds via Socket.IO
-- **Interactive Charts**: Four real-time Chart.js visualizations (hashrate, connections, difficulty, txpool)
+- **Block-Based Charts**: Four Chart.js visualizations updated only on new blocks
 - **Sync Status**: Real-time synchronization monitoring with visual indicators
 - **Node Information**: Version, uptime, update availability alerts
 - **Database Metrics**: Storage usage and free space monitoring
-- **Auto-refresh**: Configurable refresh intervals (5-300 seconds)
+- **Background Operations**: Continuous data collection and storage even without active clients
+- **Auto-refresh**: Configurable refresh intervals (5-300 seconds) for general data display
 
 ### 🧪 Advanced Tools
 - **Block Search**: Search blocks by height or hash with detailed information
@@ -210,10 +211,13 @@ Monero-RPC-Dashboard/
 - Live notification panel with badge counter
 
 ### Real-Time Statistics
-- **Hashrate Chart**: Network hashrate over time
-- **Connections Chart**: Active peer connections
-- **Difficulty Chart**: Mining difficulty progression
-- **TX Pool Chart**: Pending transactions count
+- **Hashrate Chart**: Network hashrate progression per block
+- **Connections Chart**: Active peer connections per block
+- **Difficulty Chart**: Mining difficulty changes per block
+- **TX Pool Chart**: Transaction pool size per block
+- **Charts Update**: Only on new block detection for cleaner visualization
+- **Live Data Display**: Real-time stats update every 5 seconds via WebSocket
+- **Background Processing**: Server continues collecting data even without active clients
 - Dynamic theme-aware chart colors
 
 ### Authentication & Security
