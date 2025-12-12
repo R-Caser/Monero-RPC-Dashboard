@@ -128,7 +128,8 @@ app.post('/api/auth/login', async (req, res) => {
       data: {
         id: user.id,
         username: user.username,
-        role: user.role
+        role: user.role,
+        mustChangePassword: user.must_change_password === 1
       },
       message: 'Login effettuato con successo'
     });
@@ -160,6 +161,65 @@ app.post('/api/auth/logout', (req, res) => {
 });
 
 /**
+ * POST /api/auth/change-password
+ * Cambia la password dell'utente
+ */
+app.post('/api/auth/change-password', requireAuth, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        error: 'Password attuale e nuova password sono obbligatorie'
+      });
+    }
+
+    if (newPassword.length < 4) {
+      return res.status(400).json({
+        success: false,
+        error: 'La nuova password deve essere di almeno 4 caratteri'
+      });
+    }
+
+    // Ottieni l'utente corrente
+    const user = await db.getUserByUsername(req.session.username);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'Utente non trovato'
+      });
+    }
+
+    // Verifica password attuale
+    const isValid = await verifyPassword(currentPassword, user.password);
+    if (!isValid) {
+      return res.status(401).json({
+        success: false,
+        error: 'Password attuale non corretta'
+      });
+    }
+
+    // Hash della nuova password e aggiorna
+    const hashedPassword = await hashPassword(newPassword);
+    await db.updateUserPassword(user.id, hashedPassword);
+
+    // Aggiorna sessione
+    req.session.mustChangePassword = false;
+
+    res.json({
+      success: true,
+      message: 'Password cambiata con successo'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
  * GET /api/auth/session
  * Verifica sessione corrente
  */
@@ -170,7 +230,8 @@ app.get('/api/auth/session', (req, res) => {
       data: {
         id: req.session.userId,
         username: req.session.username,
-        role: req.session.role
+        role: req.session.role,
+        mustChangePassword: req.session.mustChangePassword || false
       }
     });
   } else {
@@ -1119,6 +1180,10 @@ io.on('connection', (socket) => {
   });
 });
 
+// Variabili per monitorare nuovi blocchi
+let lastKnownHeight = 0;
+let lastTxPoolSize = 0;
+
 // Funzione per inviare aggiornamenti real-time
 async function broadcastNetworkStats() {
   try {
@@ -1133,38 +1198,67 @@ async function broadcastNetworkStats() {
     const syncPercentage = info.target_height && info.target_height > 0 
       ? ((info.height / info.target_height) * 100).toFixed(2) 
       : 100;
+
+    // Rileva nuovo blocco
+    const isNewBlock = info.height > lastKnownHeight && lastKnownHeight > 0;
+    
+    // Se è un nuovo blocco, usa il tx_pool_size precedente (transazioni che erano nel blocco minato)
+    const txPoolForStats = isNewBlock ? lastTxPoolSize : (info.tx_pool_size || 0);
     
     const stats = {
       timestamp: Date.now(),
       height: info.height,
       difficulty: info.difficulty,
       hashrate: info.difficulty / 120, // Hashrate stimato (difficulty / block time)
-      txPoolSize: info.tx_pool_size || 0,
+      txPoolSize: txPoolForStats,
       incomingConnections: connections.connections?.filter(c => c.incoming).length || 0,
       outgoingConnections: connections.connections?.filter(c => !c.incoming).length || 0,
       networkHashrate: info.difficulty / 120,
       blockReward: info.block_size_limit,
-      syncPercentage: syncPercentage
+      syncPercentage: syncPercentage,
+      isNewBlock: isNewBlock
     };
     
-    // Salva i dati storici ogni 30 secondi (ogni 6 broadcast)
-    if (!broadcastNetworkStats.counter) {
-      broadcastNetworkStats.counter = 0;
-    }
-    broadcastNetworkStats.counter++;
-    
-    if (broadcastNetworkStats.counter >= 6) {
+    // Se è un nuovo blocco, forza il broadcast e salva i dati storici
+    if (isNewBlock) {
+      console.log(`🆕 Nuovo blocco rilevato! Altezza: ${info.height} | TX nel blocco: ${lastTxPoolSize}`);
+      
+      // Salva immediatamente i dati storici per il nuovo blocco
       await db.saveHistoricalData({
         height: stats.height,
         difficulty: stats.difficulty,
         hashrate: stats.hashrate,
-        tx_pool_size: stats.txPoolSize,
+        tx_pool_size: txPoolForStats,
         incoming_connections: stats.incomingConnections,
         outgoing_connections: stats.outgoingConnections
       }).catch(err => console.error('❌ Errore salvataggio dati storici:', err.message));
       
+      // Reset counter per sincronizzare il salvataggio ogni 30 secondi
       broadcastNetworkStats.counter = 0;
+    } else {
+      // Salva i dati storici ogni 30 secondi (ogni 6 broadcast) solo se non è un nuovo blocco
+      if (!broadcastNetworkStats.counter) {
+        broadcastNetworkStats.counter = 0;
+      }
+      broadcastNetworkStats.counter++;
+      
+      if (broadcastNetworkStats.counter >= 6) {
+        await db.saveHistoricalData({
+          height: stats.height,
+          difficulty: stats.difficulty,
+          hashrate: stats.hashrate,
+          tx_pool_size: stats.txPoolSize,
+          incoming_connections: stats.incomingConnections,
+          outgoing_connections: stats.outgoingConnections
+        }).catch(err => console.error('❌ Errore salvataggio dati storici:', err.message));
+        
+        broadcastNetworkStats.counter = 0;
+      }
     }
+    
+    // Aggiorna i valori per il prossimo check
+    lastKnownHeight = info.height;
+    lastTxPoolSize = info.tx_pool_size || 0;
     
     io.to('network-stats').emit('network-stats', stats);
   } catch (error) {

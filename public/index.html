@@ -468,14 +468,14 @@
   </div>
 
   <!-- Profile Modal -->
-  <div id="profileModal" class="modal" style="display: none;">
+  <div id="profileModal" class="modal" style="display: none;" onclick="if(event.target === this && !window.isPasswordChangeForced) hideProfileModal()">
     <div class="modal-content">
       <div class="modal-header">
         <h2>👤 Modifica Profilo</h2>
         <button class="btn btn-close" onclick="hideProfileModal()">✕</button>
       </div>
       <form onsubmit="handleProfileUpdate(event)">
-        <div class="form-group">
+        <div id="profileUsernameGroup" class="form-group">
           <label for="profileUsername">Username:</label>
           <input type="text" id="profileUsername" class="input" required autocomplete="username">
         </div>

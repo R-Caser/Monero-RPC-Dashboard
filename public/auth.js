@@ -44,6 +44,14 @@ async function login(username, password) {
     if (result.success) {
       currentUser = result.data;
       updateUIForUser();
+      
+      // Se deve cambiare password, forza il modal
+      if (currentUser.mustChangePassword) {
+        setTimeout(() => {
+          showPasswordChangeModal(true);
+        }, 300);
+      }
+      
       return { success: true, message: result.message };
     } else {
       return { success: false, error: result.error };
@@ -389,30 +397,94 @@ function showToast(message, type = 'info') {
 
 // ==================== PROFILE MANAGEMENT ====================
 
-// Mostra modal profilo
-function showProfileModal() {
+let isPasswordChangeForced = false;
+window.isPasswordChangeForced = false; // Esponi per controllo backdrop modal
+
+// Mostra modal cambio password
+function showPasswordChangeModal(forced = false) {
   if (!currentUser) return;
   
+  isPasswordChangeForced = forced;
+  window.isPasswordChangeForced = forced;
   const modal = document.getElementById('profileModal');
-  const usernameInput = document.getElementById('profileUsername');
+  const closeBtn = modal?.querySelector('.btn-close');
+  const cancelBtn = modal?.querySelector('.btn-secondary');
+  const title = modal?.querySelector('.modal-header h2');
   
-  if (modal && usernameInput) {
-    usernameInput.value = currentUser.username;
+  if (modal) {
+    // Nascondi campo username in modalità cambio password obbligatorio
+    const usernameGroup = document.getElementById('profileUsernameGroup');
+    if (usernameGroup) {
+      usernameGroup.style.display = forced ? 'none' : 'block';
+    }
+    
+    // Aggiorna titolo
+    if (title) {
+      title.textContent = forced ? '⚠️ Cambio Password Obbligatorio' : '👤 Modifica Profilo';
+    }
+    
+    // Disabilita chiusura se forzato
+    if (closeBtn) {
+      closeBtn.style.display = forced ? 'none' : 'block';
+    }
+    if (cancelBtn) {
+      cancelBtn.style.display = forced ? 'none' : 'inline-block';
+    }
+    
+    // Popola i campi
+    const usernameInput = document.getElementById('profileUsername');
+    if (usernameInput && !forced) {
+      usernameInput.value = currentUser.username;
+    }
+    
     document.getElementById('profileCurrentPassword').value = '';
     document.getElementById('profileNewPassword').value = '';
     document.getElementById('profileConfirmPassword').value = '';
     document.getElementById('profileError').textContent = '';
+    
+    // Rendi obbligatorio il campo nuova password se forzato
+    const newPasswordInput = document.getElementById('profileNewPassword');
+    if (newPasswordInput) {
+      newPasswordInput.required = forced;
+      if (forced) {
+        const label = document.querySelector('label[for="profileNewPassword"]');
+        if (label) {
+          label.textContent = 'Nuova Password:';
+        }
+      }
+    }
+    
     modal.style.display = 'flex';
-    document.getElementById('profileCurrentPassword').focus();
+    
+    // Focus sul campo appropriato
+    if (forced) {
+      setTimeout(() => document.getElementById('profileCurrentPassword')?.focus(), 100);
+    } else {
+      setTimeout(() => document.getElementById('profileCurrentPassword')?.focus(), 100);
+    }
   }
+}
+
+// Mostra modal profilo (per retrocompatibilità)
+function showProfileModal() {
+  showPasswordChangeModal(false);
 }
 
 // Nascondi modal profilo
 function hideProfileModal() {
+  // Non permettere la chiusura se il cambio password è forzato
+  if (isPasswordChangeForced) {
+    showToast('Devi cambiare la password prima di continuare', 'warning');
+    return;
+  }
+  
   const modal = document.getElementById('profileModal');
   if (modal) {
     modal.style.display = 'none';
   }
+  
+  isPasswordChangeForced = false;
+  window.isPasswordChangeForced = false;
 }
 
 // Gestisci aggiornamento profilo
@@ -425,6 +497,18 @@ async function handleProfileUpdate(event) {
   const confirmPassword = document.getElementById('profileConfirmPassword').value;
   const errorElement = document.getElementById('profileError');
   
+  // Validazione password attuale
+  if (!currentPassword) {
+    errorElement.textContent = 'Inserisci la password attuale';
+    return;
+  }
+  
+  // Se è forzato, la nuova password è obbligatoria
+  if (isPasswordChangeForced && !newPassword) {
+    errorElement.textContent = 'Devi inserire una nuova password';
+    return;
+  }
+  
   // Validazione
   if (newPassword && newPassword !== confirmPassword) {
     errorElement.textContent = 'Le password non corrispondono';
@@ -436,6 +520,12 @@ async function handleProfileUpdate(event) {
     return;
   }
   
+  // Se è forzato e la nuova password è uguale alla vecchia
+  if (isPasswordChangeForced && newPassword === currentPassword) {
+    errorElement.textContent = 'La nuova password deve essere diversa da quella attuale';
+    return;
+  }
+  
   try {
     const response = await fetch('/api/auth/change-password', {
       method: 'POST',
@@ -444,20 +534,31 @@ async function handleProfileUpdate(event) {
       },
       credentials: 'include',
       body: JSON.stringify({
-        username: username,
         currentPassword: currentPassword,
-        newPassword: newPassword || undefined
+        newPassword: newPassword
       })
     });
     
     const result = await response.json();
     
     if (result.success) {
-      hideProfileModal();
-      showToast('Profilo aggiornato con successo', 'success');
+      // Aggiorna il flag mustChangePassword
+      if (currentUser) {
+        currentUser.mustChangePassword = false;
+      }
+      isPasswordChangeForced = false;
+      window.isPasswordChangeForced = false;
+      
+      // Chiudi il modal
+      const modal = document.getElementById('profileModal');
+      if (modal) {
+        modal.style.display = 'none';
+      }
+      
+      showToast('Password cambiata con successo', 'success');
       
       // Aggiorna currentUser se username è cambiato
-      if (currentUser && username !== currentUser.username) {
+      if (currentUser && username && username !== currentUser.username) {
         currentUser.username = username;
         updateUIForUser();
       }

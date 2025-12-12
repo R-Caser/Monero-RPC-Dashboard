@@ -31,7 +31,8 @@ A comprehensive web application for managing and monitoring Monero nodes through
 - **RBAC System**: Role-Based Access Control with admin and viewer roles
 - **Session Management**: Secure cookie-based sessions with bcrypt password hashing
 - **Protected Routes**: Configuration panel accessible only to admin users
-- **Default Admin**: Initial admin/admin credentials (change on first login)
+- **Default Admin**: Initial admin/admin credentials (must be changed on first login)
+- **Forced Password Change**: First login requires mandatory password change for security
 - **Login Modal**: Clean authentication interface with logout functionality
 
 ### 📈 Data Management & Notifications
@@ -308,6 +309,8 @@ This project is licensed under the **GPL-3.0 License** - see the [LICENSE](LICEN
 - [x] Historical data storage (30-day rolling window)
 - [x] Alert notifications (Multi-level notification system with toast alerts)
 - [x] Authentication system (RBAC with admin/viewer roles)
+- [x] Forced password change on first login (Default admin must change password)
+- [x] Block-based statistics updates (Real-time stats update on new blocks)
 
 ### 🔜 Planned Features
 - [ ] **Export/Import configurations** - Backup and restore RPC configurations

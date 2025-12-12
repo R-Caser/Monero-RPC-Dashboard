@@ -56,6 +56,7 @@ class Database {
           username TEXT UNIQUE NOT NULL,
           password TEXT NOT NULL,
           role TEXT NOT NULL DEFAULT 'viewer',
+          must_change_password INTEGER DEFAULT 0,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           last_login DATETIME
         )
@@ -485,21 +486,43 @@ class Database {
           const hashedPassword = bcrypt.hashSync('admin', 10);
           
           const insertQuery = `
-            INSERT INTO users (username, password, role)
-            VALUES (?, ?, ?)
+            INSERT INTO users (username, password, role, must_change_password)
+            VALUES (?, ?, ?, ?)
           `;
           
-          this.db.run(insertQuery, ['admin', hashedPassword, 'admin'], (err) => {
+          this.db.run(insertQuery, ['admin', hashedPassword, 'admin', 1], (err) => {
             if (err) {
               reject(err);
             } else {
-              console.log('👤 Utente admin creato (username: admin, password: admin)');
+              console.log('👤 Utente admin creato (username: admin, password: admin) - CAMBIO PASSWORD OBBLIGATORIO');
               resolve();
             }
           });
         } else {
           resolve();
         }
+      });
+    });
+  }
+
+  // Aggiorna il flag must_change_password
+  updateMustChangePassword(userId, value) {
+    return new Promise((resolve, reject) => {
+      const query = 'UPDATE users SET must_change_password = ? WHERE id = ?';
+      this.db.run(query, [value ? 1 : 0, userId], function(err) {
+        if (err) reject(err);
+        else resolve({ changes: this.changes });
+      });
+    });
+  }
+
+  // Aggiorna la password utente
+  updateUserPassword(userId, hashedPassword) {
+    return new Promise((resolve, reject) => {
+      const query = 'UPDATE users SET password = ?, must_change_password = 0 WHERE id = ?';
+      this.db.run(query, [hashedPassword, userId], function(err) {
+        if (err) reject(err);
+        else resolve({ changes: this.changes });
       });
     });
   }
