@@ -63,6 +63,12 @@
   gap: 0.5rem;
 }
 
+#userInfo:hover {
+  background: var(--card-bg);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
 .user-info {
   font-size: 0.875rem;
   color: var(--text-secondary);

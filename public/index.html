@@ -40,7 +40,7 @@
           <span class="dot"></span>
           <span id="statusText" data-i18n="header.status.connecting">Connessione...</span>
         </div>
-        <span id="userInfo" style="display: none; margin-right: 10px; color: var(--text-secondary);"></span>
+        <span id="userInfo" style="display: none; margin-right: 10px; color: var(--text-secondary); cursor: pointer; padding: 0.5rem 1rem; background: var(--info-item-bg); border-radius: 6px; border: 1px solid var(--border-color); transition: all 0.3s ease;" onclick="showProfileModal()" title="Clicca per modificare profilo"></span>
         <button id="loginBtn" class="btn btn-primary btn-sm" onclick="showLoginModal()" style="display: none;">🔐 Login</button>
         <button id="logoutBtn" class="btn btn-secondary btn-sm" onclick="handleLogout()" style="display: none;">🚪 Logout</button>
         <button id="configBtn" class="btn btn-secondary btn-sm" onclick="toggleConfigPanel()" data-i18n="header.config" style="display: none;">⚙️ Configurazione</button>
@@ -118,6 +118,17 @@
               <input type="number" id="refreshInterval" class="input" min="5" max="300" value="30" onchange="updateAutoRefreshSettings()">
               <small data-i18n="settings.intervalhelp">Tra 5 e 300 secondi</small>
             </div>
+          </div>
+
+          <!-- Gestione Storico Dati -->
+          <div class="config-section">
+            <h3>🗑️ Gestione Storico Dati</h3>
+            <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 1rem;">
+              Cancella tutti i dati storici salvati (statistiche di rete degli ultimi 30 giorni)
+            </p>
+            <button type="button" class="btn btn-danger" onclick="clearHistoricalData()">
+              🗑️ Cancella Storico
+            </button>
           </div>
           
           <!-- Lista Configurazioni Salvate -->
@@ -451,6 +462,39 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" onclick="hideLoginModal()">Annulla</button>
           <button type="submit" class="btn btn-primary">Login</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Profile Modal -->
+  <div id="profileModal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>👤 Modifica Profilo</h2>
+        <button class="btn btn-close" onclick="hideProfileModal()">✕</button>
+      </div>
+      <form onsubmit="handleProfileUpdate(event)">
+        <div class="form-group">
+          <label for="profileUsername">Username:</label>
+          <input type="text" id="profileUsername" class="input" required autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label for="profileCurrentPassword">Password Attuale:</label>
+          <input type="password" id="profileCurrentPassword" class="input" required autocomplete="current-password">
+        </div>
+        <div class="form-group">
+          <label for="profileNewPassword">Nuova Password (lascia vuoto per non cambiare):</label>
+          <input type="password" id="profileNewPassword" class="input" autocomplete="new-password">
+        </div>
+        <div class="form-group">
+          <label for="profileConfirmPassword">Conferma Nuova Password:</label>
+          <input type="password" id="profileConfirmPassword" class="input" autocomplete="new-password">
+        </div>
+        <div id="profileError" class="error-message"></div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="hideProfileModal()">Annulla</button>
+          <button type="submit" class="btn btn-primary">Salva Modifiche</button>
         </div>
       </form>
     </div>

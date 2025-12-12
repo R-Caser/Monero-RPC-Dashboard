@@ -616,6 +616,16 @@ class Database {
     });
   }
 
+  clearHistoricalData() {
+    return new Promise((resolve, reject) => {
+      const query = `DELETE FROM historical_data`;
+      this.db.run(query, [], function(err) {
+        if (err) reject(err);
+        else resolve({ changes: this.changes });
+      });
+    });
+  }
+
   // ==================== NOTIFICATIONS ====================
 
   createNotification(type, title, message, severity = 'info') {

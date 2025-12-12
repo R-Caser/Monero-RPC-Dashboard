@@ -98,7 +98,7 @@ function updateUIForUser() {
     if (logoutBtn) logoutBtn.style.display = 'inline-block';
     if (userInfo) {
       userInfo.style.display = 'inline-block';
-      userInfo.textContent = `👤 ${currentUser.username} (${currentUser.role})`;
+      userInfo.textContent = `👤 ${currentUser.username}`;
     }
     
     // Mostra configurazione solo per admin
@@ -385,4 +385,114 @@ function showToast(message, type = 'info') {
       }
     }, 300);
   }, 3000);
+}
+
+// ==================== PROFILE MANAGEMENT ====================
+
+// Mostra modal profilo
+function showProfileModal() {
+  if (!currentUser) return;
+  
+  const modal = document.getElementById('profileModal');
+  const usernameInput = document.getElementById('profileUsername');
+  
+  if (modal && usernameInput) {
+    usernameInput.value = currentUser.username;
+    document.getElementById('profileCurrentPassword').value = '';
+    document.getElementById('profileNewPassword').value = '';
+    document.getElementById('profileConfirmPassword').value = '';
+    document.getElementById('profileError').textContent = '';
+    modal.style.display = 'flex';
+    document.getElementById('profileCurrentPassword').focus();
+  }
+}
+
+// Nascondi modal profilo
+function hideProfileModal() {
+  const modal = document.getElementById('profileModal');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+}
+
+// Gestisci aggiornamento profilo
+async function handleProfileUpdate(event) {
+  event.preventDefault();
+  
+  const username = document.getElementById('profileUsername').value;
+  const currentPassword = document.getElementById('profileCurrentPassword').value;
+  const newPassword = document.getElementById('profileNewPassword').value;
+  const confirmPassword = document.getElementById('profileConfirmPassword').value;
+  const errorElement = document.getElementById('profileError');
+  
+  // Validazione
+  if (newPassword && newPassword !== confirmPassword) {
+    errorElement.textContent = 'Le password non corrispondono';
+    return;
+  }
+  
+  if (newPassword && newPassword.length < 4) {
+    errorElement.textContent = 'La password deve essere di almeno 4 caratteri';
+    return;
+  }
+  
+  try {
+    const response = await fetch('/api/auth/change-password', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        username: username,
+        currentPassword: currentPassword,
+        newPassword: newPassword || undefined
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      hideProfileModal();
+      showToast('Profilo aggiornato con successo', 'success');
+      
+      // Aggiorna currentUser se username è cambiato
+      if (currentUser && username !== currentUser.username) {
+        currentUser.username = username;
+        updateUIForUser();
+      }
+    } else {
+      errorElement.textContent = result.error || 'Errore durante l\'aggiornamento';
+    }
+  } catch (error) {
+    console.error('Errore aggiornamento profilo:', error);
+    errorElement.textContent = 'Errore di connessione';
+  }
+}
+
+// ==================== DATA MANAGEMENT ====================
+
+// Cancella storico dati
+async function clearHistoricalData() {
+  if (!confirm('Sei sicuro di voler cancellare tutti i dati storici? Questa operazione non può essere annullata.')) {
+    return;
+  }
+  
+  try {
+    const response = await fetch('/api/historical-data/clear', {
+      method: 'DELETE',
+      credentials: 'include'
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      showToast(`Storico cancellato: ${result.deleted || 0} record eliminati`, 'success');
+    } else {
+      showToast(result.error || 'Errore durante la cancellazione', 'error');
+    }
+  } catch (error) {
+    console.error('Errore cancellazione storico:', error);
+    showToast('Errore di connessione', 'error');
+  }
 }

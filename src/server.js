@@ -313,6 +313,27 @@ app.get('/api/historical/range', async (req, res) => {
   }
 });
 
+/**
+ * DELETE /api/historical-data/clear
+ * Cancella tutti i dati storici (solo admin)
+ */
+app.delete('/api/historical-data/clear', requireAdmin, async (req, res) => {
+  try {
+    const result = await db.clearHistoricalData();
+    res.json({
+      success: true,
+      deleted: result.changes || 0,
+      message: 'Dati storici cancellati con successo'
+    });
+  } catch (error) {
+    console.error('Errore cancellazione dati storici:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // ==================== CONFIGURATION ROUTES ====================
 
 /**
