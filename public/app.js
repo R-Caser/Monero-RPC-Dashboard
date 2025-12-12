@@ -442,6 +442,12 @@ document.getElementById('blockInput')?.addEventListener('keypress', (e) => {
 
 // Toggle pannello configurazione
 function toggleConfigPanel() {
+  // Controlla se l'utente è admin
+  if (!currentUser || currentUser.role !== 'admin') {
+    showToast('Accesso negato: solo gli amministratori possono accedere alla configurazione', 'error');
+    return;
+  }
+  
   const panel = document.getElementById('configPanel');
   if (panel.style.display === 'none') {
     panel.style.display = 'block';

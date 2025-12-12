@@ -13,6 +13,8 @@ A comprehensive web application for managing and monitoring Monero nodes through
 
 ### 📊 Real-time Network Monitoring
 - **Live Network Stats**: Blockchain height, connections, difficulty
+- **WebSocket Updates**: Real-time data push every 5 seconds via Socket.IO
+- **Interactive Charts**: Four real-time Chart.js visualizations (hashrate, connections, difficulty, txpool)
 - **Sync Status**: Real-time synchronization monitoring with visual indicators
 - **Node Information**: Version, uptime, update availability alerts
 - **Database Metrics**: Storage usage and free space monitoring
@@ -25,17 +27,32 @@ A comprehensive web application for managing and monitoring Monero nodes through
 - **Custom RPC Calls**: Execute any RPC method with JSON parameters
 - **Block Visualization**: Animated block representation with TX pool
 
+### 🔐 Authentication & Security
+- **RBAC System**: Role-Based Access Control with admin and viewer roles
+- **Session Management**: Secure cookie-based sessions with bcrypt password hashing
+- **Protected Routes**: Configuration panel accessible only to admin users
+- **Default Admin**: Initial admin/admin credentials (change on first login)
+- **Login Modal**: Clean authentication interface with logout functionality
+
+### 📈 Data Management & Notifications
+- **Historical Data**: Automatic storage of network statistics every 30 seconds
+- **Data Retention**: 30-day rolling window for historical metrics
+- **Smart Notifications**: Multi-level alert system (info, warning, error, success)
+- **Toast Alerts**: Real-time visual notifications for important events
+- **Notification Panel**: Centralized notification center with read/unread status
+- **Auto-cleanup**: Automatic removal of old data and read notifications
+
 ### 🌍 Internationalization
 - **Multi-language Support**: Italian and English with easy extensibility
 - **Dynamic Loading**: Language files loaded dynamically
 - **Complete Translation**: All UI elements, messages, and errors translated
 
 ### 🎨 Modern User Interface
-- **Dark/Light Themes**: Toggle between themes with persistent preference
+- **Dark/Light Themes**: Toggle between themes with persistent preference and dynamic chart colors
 - **Responsive Design**: Mobile-first design that works on all devices
 - **Collapsible Sections**: Organize information with expandable cards
 - **Smooth Animations**: CSS transitions and animated components
-- **Modular CSS**: 9 separate CSS modules for maintainability
+- **Modular CSS**: 11 separate CSS modules for maintainability (charts, auth, etc.)
 
 ## 📋 Requirements
 
@@ -96,13 +113,17 @@ http://localhost:3000
 ```
 Monero-RPC-Dashboard/
 ├── src/
-│   ├── server.js          # Express server and API routes
-│   ├── database.js        # SQLite database management
-│   └── moneroRPC.js       # Monero RPC client wrapper
+│   ├── server.js          # Express server, WebSocket, and API routes
+│   ├── database.js        # SQLite database with 5 tables
+│   ├── moneroRPC.js       # Monero RPC client wrapper
+│   └── auth.js            # RBAC middleware and authentication
 ├── public/
 │   ├── index.html         # Main application HTML
 │   ├── app.js            # Frontend JavaScript logic
 │   ├── i18n.js           # Internationalization system
+│   ├── charts.js         # Chart.js configuration and updates
+│   ├── websocket.js      # Socket.IO client for real-time updates
+│   ├── auth.js           # Frontend authentication and notifications
 │   ├── css/              # Modular CSS stylesheets
 │   │   ├── variables.css
 │   │   ├── base.css
@@ -112,6 +133,8 @@ Monero-RPC-Dashboard/
 │   │   ├── info-grid.css
 │   │   ├── config.css
 │   │   ├── block-visualization.css
+│   │   ├── charts.css    # Real-time charts styling
+│   │   ├── auth.css      # Authentication and notifications styling
 │   │   └── responsive.css
 │   └── i18n/             # Translation files
 │       ├── it-IT.js      # Italian translations
@@ -152,22 +175,63 @@ Monero-RPC-Dashboard/
 - `GET /api/settings` - Get application settings
 - `PUT /api/settings` - Update application settings
 
+### Authentication & Authorization
+- `GET /api/auth/session` - Check current session
+- `POST /api/auth/login` - Login with username/password
+- `POST /api/auth/logout` - Logout and destroy session
+- `POST /api/auth/change-password` - Change user password
+
+### Historical Data & Analytics
+- `GET /api/historical-data` - Get historical network statistics
+- Query params: `period` (1h, 24h, 7d, 30d), `metric` (hashrate, difficulty, connections, txpool)
+
+### Notifications
+- `GET /api/notifications` - Get all notifications
+- `GET /api/notifications/unread` - Get unread notifications count
+- `PUT /api/notifications/:id/read` - Mark notification as read
+- `DELETE /api/notifications/:id` - Delete notification
+
+### WebSocket Events
+- `network-stats` - Real-time network statistics broadcast (every 5s)
+- `notification` - New notification pushed to clients
+
 ### Internationalization
 - `GET /api/i18n/languages` - Get available languages
 
-## 🖥 Screenshots
+## 🖥 Key Features Overview
 
 ### Main Dashboard
-- Real-time network information
+- Real-time network information with WebSocket updates
+- Four interactive Chart.js visualizations
 - Sync status with visual indicators
 - Node version and update alerts
 - Database and storage metrics
+- Live notification panel with badge counter
 
-### Configuration Panel
+### Real-Time Statistics
+- **Hashrate Chart**: Network hashrate over time
+- **Connections Chart**: Active peer connections
+- **Difficulty Chart**: Mining difficulty progression
+- **TX Pool Chart**: Pending transactions count
+- Dynamic theme-aware chart colors
+
+### Authentication & Security
+- Secure login modal with session management
+- Role-based access control (admin/viewer)
+- Protected configuration panel
+- Password change functionality
+
+### Configuration Panel (Admin Only)
 - Multiple RPC configurations
 - Connection testing
-- Secure credential storage
+- Secure credential storage with bcrypt
 - Easy switching between nodes
+
+### Data & Notifications
+- Historical data storage (30-day retention)
+- Multi-level notification system
+- Toast notifications for real-time alerts
+- Notification panel with read/unread status
 
 ### Advanced Tools
 - Block search and exploration
@@ -187,11 +251,17 @@ Monero-RPC-Dashboard/
 ### Backend
 - **Node.js** - JavaScript runtime
 - **Express.js** - Web framework
-- **SQLite3** - Embedded database
+- **Socket.IO** - Real-time WebSocket communication
+- **SQLite3** - Embedded database with 5 tables
+- **bcryptjs** - Secure password hashing
+- **express-session** - Session management
+- **cookie-parser** - Cookie handling
 - **Axios** - HTTP client for RPC calls
 
 ### Frontend
 - **Vanilla JavaScript** - No frameworks, pure JS
+- **Chart.js** - Interactive real-time charts
+- **Socket.IO Client** - WebSocket client for live updates
 - **CSS3** - Modern styling with variables and grid
 - **HTML5** - Semantic markup
 
@@ -232,14 +302,30 @@ This project is licensed under the **GPL-3.0 License** - see the [LICENSE](LICEN
 
 ## 🎯 Roadmap
 
-- [ ] Export/Import configurations
-- [ ] Chart visualizations for network stats
-- [ ] WebSocket support for real-time updates
-- [ ] Mobile app wrapper
-- [ ] Additional language translations
-- [ ] Custom dashboard widgets
-- [ ] Historical data storage
-- [ ] Alert notifications
+### ✅ Completed
+- [x] Chart visualizations for network stats (Chart.js with 4 real-time charts)
+- [x] WebSocket support for real-time updates (Socket.IO)
+- [x] Historical data storage (30-day rolling window)
+- [x] Alert notifications (Multi-level notification system with toast alerts)
+- [x] Authentication system (RBAC with admin/viewer roles)
+
+### 🔜 Planned Features
+- [ ] **Export/Import configurations** - Backup and restore RPC configurations
+- [ ] **Additional language translations** - French, German, Spanish, Portuguese
+- [ ] **Custom dashboard widgets** - Drag-and-drop customizable dashboard layout
+- [ ] **Mobile app wrapper** - React Native or Capacitor mobile app
+- [ ] **Advanced analytics** - Detailed historical charts with zoom and pan
+- [ ] **Multi-user management** - Create/edit/delete users with different roles
+- [ ] **Email notifications** - SMTP integration for critical alerts
+- [ ] **API rate limiting** - Protection against excessive requests
+- [ ] **Backup/restore database** - Automated database backup system
+- [ ] **Monero mining stats** - Mining pool integration and statistics
+- [ ] **Network topology map** - Visual representation of peer connections
+- [ ] **Performance metrics** - CPU, RAM, disk I/O monitoring
+- [ ] **Docker support** - Containerized deployment with Docker Compose
+- [ ] **Two-factor authentication** - TOTP-based 2FA for enhanced security
+- [ ] **Webhook integrations** - Discord, Slack, Telegram notifications
+- [ ] **Block explorer integration** - Deep-dive into block and transaction details
 
 ---
 

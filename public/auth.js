@@ -74,9 +74,20 @@ async function logout() {
   }
 }
 
+// Gestisce il logout con messaggio di conferma
+async function handleLogout() {
+  const result = await logout();
+  if (result) {
+    showToast('Logout effettuato con successo', 'success');
+  } else {
+    showToast('Errore durante il logout', 'error');
+  }
+}
+
 // Aggiorna l'UI in base all'utente loggato
 function updateUIForUser() {
   const configBtn = document.getElementById('configBtn');
+  const configPanel = document.getElementById('configPanel');
   const loginBtn = document.getElementById('loginBtn');
   const logoutBtn = document.getElementById('logoutBtn');
   const userInfo = document.getElementById('userInfo');
@@ -91,15 +102,24 @@ function updateUIForUser() {
     }
     
     // Mostra configurazione solo per admin
+    const isAdmin = currentUser.role === 'admin';
     if (configBtn) {
-      configBtn.style.display = currentUser.role === 'admin' ? 'inline-block' : 'none';
+      configBtn.style.display = isAdmin ? 'inline-block' : 'none';
+    }
+    // Nascondi pannello configurazione se non admin o non loggato
+    if (configPanel && !isAdmin) {
+      configPanel.style.display = 'none';
     }
   } else {
-    // Nessun utente loggato
+    // Nessun utente loggato - mostra pulsante login
     if (loginBtn) loginBtn.style.display = 'inline-block';
     if (logoutBtn) logoutBtn.style.display = 'none';
     if (userInfo) userInfo.style.display = 'none';
     if (configBtn) configBtn.style.display = 'none';
+    // Nascondi pannello configurazione
+    if (configPanel) {
+      configPanel.style.display = 'none';
+    }
   }
 }
 

@@ -40,12 +40,15 @@
           <span class="dot"></span>
           <span id="statusText" data-i18n="header.status.connecting">Connessione...</span>
         </div>
-        <button class="btn btn-secondary btn-sm" onclick="toggleConfigPanel()" data-i18n="header.config">⚙️ Configurazione</button>
+        <span id="userInfo" style="display: none; margin-right: 10px; color: var(--text-secondary);"></span>
+        <button id="loginBtn" class="btn btn-primary btn-sm" onclick="showLoginModal()" style="display: none;">🔐 Login</button>
+        <button id="logoutBtn" class="btn btn-secondary btn-sm" onclick="handleLogout()" style="display: none;">🚪 Logout</button>
+        <button id="configBtn" class="btn btn-secondary btn-sm" onclick="toggleConfigPanel()" data-i18n="header.config" style="display: none;">⚙️ Configurazione</button>
       </div>
     </header>
 
     <!-- Pannello Configurazione (nascosto di default) -->
-    <div id="configPanel" class="config-panel" style="display: none;">
+    <div id="configPanel" class="config-panel admin-only" style="display: none;">
       <div class="card">
         <div class="config-header">
           <h2 data-i18n="config.title">⚙️ Configurazione Nodo RPC</h2>
