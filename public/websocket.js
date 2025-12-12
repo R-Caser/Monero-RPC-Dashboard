@@ -120,11 +120,15 @@ function updateNetworkStatsRealtime(stats) {
     syncElement.textContent = stats.syncPercentage + '%';
   }
 
-  // Aggiorna timestamp ultimo aggiornamento
+  // Aggiorna timestamp ultimo aggiornamento in fuso ZULU (UTC)
   const timestampElement = document.getElementById('lastUpdateTime');
   if (timestampElement) {
     const updateTime = new Date(stats.timestamp);
-    timestampElement.textContent = updateTime.toLocaleTimeString('it-IT');
+    // Formatta in orario ZULU (UTC) con formato HH:MM:SS Z
+    const hours = String(updateTime.getUTCHours()).padStart(2, '0');
+    const minutes = String(updateTime.getUTCMinutes()).padStart(2, '0');
+    const seconds = String(updateTime.getUTCSeconds()).padStart(2, '0');
+    timestampElement.textContent = `${hours}:${minutes}:${seconds} Z`;
   }
 }
 
