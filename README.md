@@ -228,7 +228,7 @@ This project is licensed under the **GPL-3.0 License** - see the [LICENSE](LICEN
 ## 🔗 Related Projects
 
 - **Monero**: https://getmonero.org/
-- **Monero RPC Documentation**: https://www.getmonero.org/resources/developer-guides/daemon-rpc.html
+- **Monero RPC Documentation**: https://docs.getmonero.org/rpc-library/monerod-rpc
 
 ## 🎯 Roadmap
 
@@ -244,3 +244,4 @@ This project is licensed under the **GPL-3.0 License** - see the [LICENSE](LICEN
 ---
 
 **Made with ❤️ for the Monero Community**
+4Ax8oTCSZMn3Up5JCG9V7XZPd4JvC9JPY9YdrqjbGDvi2oSsqfp8SZFL22C2bYrtuP52GZuhhZEsUXXY8rc7WSmAGBkWhDW

@@ -10,25 +10,87 @@ class MoneroRPCClient {
     this.port = config.port || process.env.MONERO_RPC_PORT || 18081;
     this.user = config.user || process.env.MONERO_RPC_USER;
     this.password = config.password || process.env.MONERO_RPC_PASSWORD;
+    this.useHttps = config.useHttps || process.env.MONERO_RPC_HTTPS === 'true';
     
-    this.baseURL = `http://${this.host}:${this.port}`;
+    const protocol = this.useHttps ? 'https' : 'http';
+    this.baseURL = `${protocol}://${this.host}:${this.port}`;
     
-    // Configurazione axios per JSON-RPC
-    this.client = axios.create({
+    // Configurazione axios con autenticazione Basic HTTP
+    const axiosConfig = {
       baseURL: this.baseURL,
       timeout: 30000,
       headers: {
         'Content-Type': 'application/json',
       },
-    });
-
-    // Aggiungi autenticazione se presente
+    };
+    
+    // Aggiungi autenticazione Basic se presente
     if (this.user && this.password) {
-      this.client.defaults.auth = {
+      axiosConfig.auth = {
         username: this.user,
         password: this.password,
       };
+      console.log(`🔐 Autenticazione Basic HTTP configurata per utente: ${this.user}`);
+    } else {
+      console.log('ℹ️ Nessuna autenticazione RPC configurata');
     }
+    
+    this.client = axios.create(axiosConfig);
+    console.log(`🌐 RPC URL configurato: ${this.baseURL}`);
+  }
+
+  /**
+   * Esegue una richiesta HTTP con autenticazione Digest
+   * @param {string} endpoint - Endpoint da chiamare (es: '/get_info')
+   * @param {string} method - Metodo HTTP (GET o POST)
+   * @param {object} body - Body della richiesta (opzionale)
+   * @returns {Promise<any>} Risultato della chiamata
+   */
+  async digestRequest(endpoint, method = 'GET', body = null) {
+    const fetch = require('node-fetch');
+    const crypto = require('crypto');
+    
+    // Prima richiesta per ottenere nonce
+    const firstResponse = await fetch(`${this.baseURL}${endpoint}`);
+    if (firstResponse.status !== 401) {
+      // Se non è 401, forse non serve autenticazione
+      return await firstResponse.json();
+    }
+    
+    const authHeader = firstResponse.headers.get('www-authenticate');
+    const nonce = authHeader.match(/nonce="([^"]+)"/)?.[1];
+    const realm = authHeader.match(/realm="([^"]+)"/)?.[1];
+    
+    if (!nonce || !realm) {
+      throw new Error('Cannot extract nonce or realm from www-authenticate header');
+    }
+    
+    // Calcola response digest
+    const ha1 = crypto.createHash('md5').update(`${this.user}:${realm}:${this.password}`).digest('hex');
+    const ha2 = crypto.createHash('md5').update(`${method}:${endpoint}`).digest('hex');
+    const response_hash = crypto.createHash('md5').update(`${ha1}:${nonce}:${ha2}`).digest('hex');
+    
+    const digestAuth = `Digest username="${this.user}", realm="${realm}", nonce="${nonce}", uri="${endpoint}", response="${response_hash}"`;
+    
+    const options = {
+      method: method,
+      headers: {
+        'Authorization': digestAuth
+      }
+    };
+    
+    if (body) {
+      options.headers['Content-Type'] = 'application/json';
+      options.body = typeof body === 'string' ? body : JSON.stringify(body);
+    }
+    
+    const authResponse = await fetch(`${this.baseURL}${endpoint}`, options);
+    
+    if (!authResponse.ok) {
+      throw new Error(`HTTP ${authResponse.status}: ${authResponse.statusText}`);
+    }
+    
+    return await authResponse.json();
   }
 
   /**
@@ -46,7 +108,16 @@ class MoneroRPCClient {
         params: params,
       };
 
-      const response = await this.client.post('/json_rpc', payload);
+      let response;
+      
+      if (this.user && this.password) {
+        // Usa autenticazione Digest
+        const data = await this.digestRequest('/json_rpc', 'POST', payload);
+        response = { data };
+      } else {
+        // Richiesta senza autenticazione
+        response = await this.client.post('/json_rpc', payload);
+      }
       
       if (response.data.error) {
         throw new Error(`RPC Error: ${response.data.error.message}`);
@@ -119,9 +190,22 @@ class MoneroRPCClient {
    */
   async getInfo() {
     try {
-      const response = await this.client.get('/get_info');
-      return response.data;
+      console.log(`🔍 Tentativo di connessione a: ${this.baseURL}/get_info`);
+      console.log(`🔐 Autenticazione: ${this.user ? 'Sì (Digest)' : 'No'} (utente: ${this.user})`);
+      
+      if (this.user && this.password) {
+        // Usa autenticazione Digest
+        const data = await this.digestRequest('/get_info');
+        console.log('✅ Risposta ricevuta dal nodo Monero con autenticazione Digest');
+        return data;
+      } else {
+        // Richiesta senza autenticazione
+        const response = await this.client.get('/get_info');
+        console.log('✅ Risposta ricevuta dal nodo Monero senza autenticazione');
+        return response.data;
+      }
     } catch (error) {
+      console.error('❌ Errore nella chiamata RPC:', error.message);
       throw new Error(`Failed to get info: ${error.message}`);
     }
   }
@@ -132,8 +216,14 @@ class MoneroRPCClient {
    */
   async getHeight() {
     try {
-      const response = await this.client.get('/get_height');
-      return response.data;
+      if (this.user && this.password) {
+        // Usa autenticazione Digest
+        return await this.digestRequest('/get_height');
+      } else {
+        // Richiesta senza autenticazione
+        const response = await this.client.get('/get_height');
+        return response.data;
+      }
     } catch (error) {
       throw new Error(`Failed to get height: ${error.message}`);
     }
