@@ -526,11 +526,27 @@
       // Carica notifiche
       await loadNotifications();
       
-      // Inizializza grafici e WebSocket
-      setTimeout(() => {
-        initCharts();
-        initWebSocket();
-      }, 1000);
+      // Inizializza grafici immediatamente
+      initCharts();
+      
+      // Carica dati storici dal database prima di connettere WebSocket
+      // Questo assicura che i grafici siano popolati anche al primo caricamento/refresh
+      if (typeof loadHistoricalChartData === 'function') {
+        await loadHistoricalChartData().then(loaded => {
+          if (loaded) {
+            console.log('✅ Grafici inizializzati con dati storici dal database');
+            // Imposta la flag per evitare caricamenti duplicati dal WebSocket
+            if (typeof historicalDataLoaded !== 'undefined') {
+              historicalDataLoaded = true;
+            }
+          }
+        }).catch(err => {
+          console.error('❌ Errore caricamento dati storici iniziali:', err);
+        });
+      }
+      
+      // Inizializza WebSocket dopo aver caricato i dati storici
+      initWebSocket();
       
       // Aggiorna notifiche ogni 30 secondi
       setInterval(loadNotifications, 30000);

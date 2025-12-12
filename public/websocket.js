@@ -2,6 +2,7 @@
 
 let socket = null;
 let isConnected = false;
+let historicalDataLoaded = false; // Flag per evitare caricamenti duplicati
 
 // Inizializza la connessione WebSocket
 function initWebSocket() {
@@ -20,11 +21,13 @@ function initWebSocket() {
     isConnected = true;
     updateWebSocketStatus(true);
     
-    // Carica i dati storici per popolare i grafici
-    if (typeof loadHistoricalChartData === 'function') {
+    // Carica i dati storici solo se non sono già stati caricati
+    // (utile per riconnessioni dopo disconnessione)
+    if (!historicalDataLoaded && typeof loadHistoricalChartData === 'function') {
       loadHistoricalChartData().then(loaded => {
         if (loaded) {
-          console.log('✅ Grafici popolati con dati storici');
+          console.log('✅ Grafici popolati con dati storici dal WebSocket');
+          historicalDataLoaded = true;
         }
       });
     }
