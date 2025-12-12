@@ -315,6 +315,8 @@ This project is licensed under the **GPL-3.0 License** - see the [LICENSE](LICEN
 - [x] Authentication system (RBAC with admin/viewer roles)
 - [x] Forced password change on first login (Default admin must change password)
 - [x] Block-based statistics updates (Real-time stats update on new blocks)
+- [x] Historical data persistence (Charts populate with database records on page load)
+- [x] Weighted moving average (Charts show trend lines for hashrate, difficulty, and TX pool)
 
 ### 🔜 Planned Features
 - [ ] **Export/Import configurations** - Backup and restore RPC configurations

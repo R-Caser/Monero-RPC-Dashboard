@@ -11,7 +11,8 @@ let charts = {
 const chartData = {
   hashrate: {
     labels: [],
-    data: []
+    data: [],
+    movingAvg: [] // Media ponderata
   },
   connections: {
     labels: [],
@@ -20,59 +21,111 @@ const chartData = {
   },
   difficulty: {
     labels: [],
-    data: []
+    data: [],
+    movingAvg: [] // Media ponderata
   },
   txpool: {
     labels: [],
-    data: []
+    data: [],
+    movingAvg: [] // Media ponderata
   }
 };
 
 const MAX_DATA_POINTS = 60; // Mantieni ultimi 60 punti (5 minuti a 5 secondi)
+const MOVING_AVG_WINDOW = 10; // Finestra per media mobile
+
+// Funzione per calcolare la media ponderata (weighted moving average)
+function calculateWeightedMovingAverage(data, windowSize = MOVING_AVG_WINDOW) {
+  const result = [];
+  
+  for (let i = 0; i < data.length; i++) {
+    const start = Math.max(0, i - windowSize + 1);
+    const window = data.slice(start, i + 1);
+    
+    // Calcola media ponderata (pesi maggiori per i valori più recenti)
+    let weightedSum = 0;
+    let weightTotal = 0;
+    
+    window.forEach((value, index) => {
+      const weight = index + 1; // Peso crescente
+      weightedSum += value * weight;
+      weightTotal += weight;
+    });
+    
+    result.push(weightedSum / weightTotal);
+  }
+  
+  return result;
+}
 
 // Funzione per caricare i dati storici dal database
 async function loadHistoricalChartData() {
   try {
-    const response = await fetch('/api/historical-data/recent?limit=60');
+    const response = await fetch('/api/historical-data/recent?limit=120'); // Carica più dati per filtrare
     const result = await response.json();
     
     if (result.success && result.data && result.data.length > 0) {
-      console.log(`📊 Caricati ${result.data.length} punti dati storici per i grafici`);
+      console.log(`📊 Caricati ${result.data.length} punti dati storici dal database`);
+      
+      // Aggrega i dati per blocco (prendi il valore massimo per ogni blocco)
+      const blockMap = new Map();
       
       result.data.forEach(record => {
-        const label = `#${record.height}`;
+        const height = record.height;
+        
+        if (!blockMap.has(height)) {
+          blockMap.set(height, {
+            height: height,
+            hashrate: record.hashrate,
+            difficulty: record.difficulty,
+            tx_pool_size: record.tx_pool_size || 0,
+            incoming_connections: record.incoming_connections || 0,
+            outgoing_connections: record.outgoing_connections || 0
+          });
+        } else {
+          // Prendi il valore massimo
+          const existing = blockMap.get(height);
+          existing.hashrate = Math.max(existing.hashrate, record.hashrate);
+          existing.difficulty = Math.max(existing.difficulty, record.difficulty);
+          existing.tx_pool_size = Math.max(existing.tx_pool_size, record.tx_pool_size || 0);
+          existing.incoming_connections = Math.max(existing.incoming_connections, record.incoming_connections || 0);
+          existing.outgoing_connections = Math.max(existing.outgoing_connections, record.outgoing_connections || 0);
+        }
+      });
+      
+      // Converti la mappa in array e prendi solo gli ultimi MAX_DATA_POINTS
+      const uniqueBlocks = Array.from(blockMap.values())
+        .sort((a, b) => a.height - b.height)
+        .slice(-MAX_DATA_POINTS);
+      
+      console.log(`📊 Blocchi univoci: ${uniqueBlocks.length} (da ${result.data.length} record)`);
+      
+      // Popola i dati dei grafici
+      uniqueBlocks.forEach(block => {
+        const label = `#${block.height}`;
         
         // Aggiungi dati hashrate
         chartData.hashrate.labels.push(label);
-        chartData.hashrate.data.push(record.hashrate);
+        chartData.hashrate.data.push(block.hashrate);
         
         // Aggiungi dati connessioni
         chartData.connections.labels.push(label);
-        chartData.connections.incoming.push(record.incoming_connections || 0);
-        chartData.connections.outgoing.push(record.outgoing_connections || 0);
+        chartData.connections.incoming.push(block.incoming_connections);
+        chartData.connections.outgoing.push(block.outgoing_connections);
         
         // Aggiungi dati difficoltà
         chartData.difficulty.labels.push(label);
-        chartData.difficulty.data.push(record.difficulty);
+        chartData.difficulty.data.push(block.difficulty);
         
         // Aggiungi dati TX pool
         chartData.txpool.labels.push(label);
-        chartData.txpool.data.push(record.tx_pool_size || 0);
+        chartData.txpool.data.push(block.tx_pool_size);
       });
       
-      // Mantieni solo gli ultimi MAX_DATA_POINTS
-      if (chartData.hashrate.labels.length > MAX_DATA_POINTS) {
-        const excess = chartData.hashrate.labels.length - MAX_DATA_POINTS;
-        chartData.hashrate.labels.splice(0, excess);
-        chartData.hashrate.data.splice(0, excess);
-        chartData.connections.labels.splice(0, excess);
-        chartData.connections.incoming.splice(0, excess);
-        chartData.connections.outgoing.splice(0, excess);
-        chartData.difficulty.labels.splice(0, excess);
-        chartData.difficulty.data.splice(0, excess);
-        chartData.txpool.labels.splice(0, excess);
-        chartData.txpool.data.splice(0, excess);
-      }
+      // Calcola le medie ponderate
+      chartData.hashrate.movingAvg = calculateWeightedMovingAverage(chartData.hashrate.data);
+      chartData.difficulty.movingAvg = calculateWeightedMovingAverage(chartData.difficulty.data);
+      chartData.txpool.movingAvg = calculateWeightedMovingAverage(chartData.txpool.data);
       
       // Aggiorna i grafici se sono già inizializzati
       if (charts.hashrate) {
@@ -169,17 +222,33 @@ function initCharts() {
       type: 'line',
       data: {
         labels: chartData.hashrate.labels,
-        datasets: [{
-          label: 'Network Hashrate (MH/s)',
-          data: chartData.hashrate.data,
-          borderColor: '#00d4aa',
-          backgroundColor: 'rgba(0, 212, 170, 0.1)',
-          fill: true,
-          tension: 0.4,
-          borderWidth: 2,
-          pointRadius: 2,
-          pointHoverRadius: 5
-        }]
+        datasets: [
+          {
+            label: 'Network Hashrate (MH/s)',
+            data: chartData.hashrate.data,
+            borderColor: '#00d4aa',
+            backgroundColor: 'rgba(0, 212, 170, 0.1)',
+            fill: true,
+            tension: 0.4,
+            borderWidth: 2,
+            pointRadius: 2,
+            pointHoverRadius: 5,
+            order: 2
+          },
+          {
+            label: 'Media Ponderata',
+            data: chartData.hashrate.movingAvg,
+            borderColor: '#ff6b6b',
+            backgroundColor: 'transparent',
+            fill: false,
+            tension: 0.4,
+            borderWidth: 2,
+            borderDash: [5, 5],
+            pointRadius: 0,
+            pointHoverRadius: 4,
+            order: 1
+          }
+        ]
       },
       options: {
         ...commonOptions,
@@ -250,17 +319,33 @@ function initCharts() {
       type: 'line',
       data: {
         labels: chartData.difficulty.labels,
-        datasets: [{
-          label: 'Network Difficulty',
-          data: chartData.difficulty.data,
-          borderColor: '#FF9800',
-          backgroundColor: 'rgba(255, 152, 0, 0.1)',
-          fill: true,
-          tension: 0.4,
-          borderWidth: 2,
-          pointRadius: 2,
-          pointHoverRadius: 5
-        }]
+        datasets: [
+          {
+            label: 'Network Difficulty',
+            data: chartData.difficulty.data,
+            borderColor: '#FF9800',
+            backgroundColor: 'rgba(255, 152, 0, 0.1)',
+            fill: true,
+            tension: 0.4,
+            borderWidth: 2,
+            pointRadius: 2,
+            pointHoverRadius: 5,
+            order: 2
+          },
+          {
+            label: 'Media Ponderata',
+            data: chartData.difficulty.movingAvg,
+            borderColor: '#ff6b6b',
+            backgroundColor: 'transparent',
+            fill: false,
+            tension: 0.4,
+            borderWidth: 2,
+            borderDash: [5, 5],
+            pointRadius: 0,
+            pointHoverRadius: 4,
+            order: 1
+          }
+        ]
       },
       options: {
         ...commonOptions,
@@ -287,13 +372,30 @@ function initCharts() {
       type: 'bar',
       data: {
         labels: chartData.txpool.labels,
-        datasets: [{
-          label: 'Transazioni in Pool',
-          data: chartData.txpool.data,
-          backgroundColor: '#9C27B0',
-          borderColor: '#7B1FA2',
-          borderWidth: 1
-        }]
+        datasets: [
+          {
+            label: 'Transazioni in Pool',
+            data: chartData.txpool.data,
+            backgroundColor: '#9C27B0',
+            borderColor: '#7B1FA2',
+            borderWidth: 1,
+            order: 2
+          },
+          {
+            label: 'Media Ponderata',
+            type: 'line',
+            data: chartData.txpool.movingAvg,
+            borderColor: '#ff6b6b',
+            backgroundColor: 'transparent',
+            fill: false,
+            tension: 0.4,
+            borderWidth: 2,
+            borderDash: [5, 5],
+            pointRadius: 0,
+            pointHoverRadius: 4,
+            order: 1
+          }
+        ]
       },
       options: commonOptions
     });
@@ -314,13 +416,18 @@ function updateCharts(stats) {
 
   // Aggiorna Hashrate
   if (charts.hashrate) {
+    const hashrateValue = parseFloat((stats.hashrate / 1000000).toFixed(2)); // Converti in MH/s
     chartData.hashrate.labels.push(label);
-    chartData.hashrate.data.push((stats.hashrate / 1000000).toFixed(2)); // Converti in MH/s
+    chartData.hashrate.data.push(hashrateValue);
 
     if (chartData.hashrate.labels.length > MAX_DATA_POINTS) {
       chartData.hashrate.labels.shift();
       chartData.hashrate.data.shift();
+      chartData.hashrate.movingAvg.shift();
     }
+    
+    // Ricalcola la media ponderata
+    chartData.hashrate.movingAvg = calculateWeightedMovingAverage(chartData.hashrate.data);
 
     charts.hashrate.update('active');
   }
@@ -348,7 +455,11 @@ function updateCharts(stats) {
     if (chartData.difficulty.labels.length > MAX_DATA_POINTS) {
       chartData.difficulty.labels.shift();
       chartData.difficulty.data.shift();
+      chartData.difficulty.movingAvg.shift();
     }
+    
+    // Ricalcola la media ponderata
+    chartData.difficulty.movingAvg = calculateWeightedMovingAverage(chartData.difficulty.data);
 
     charts.difficulty.update('active');
   }
@@ -361,7 +472,11 @@ function updateCharts(stats) {
     if (chartData.txpool.labels.length > MAX_DATA_POINTS) {
       chartData.txpool.labels.shift();
       chartData.txpool.data.shift();
+      chartData.txpool.movingAvg.shift();
     }
+    
+    // Ricalcola la media ponderata
+    chartData.txpool.movingAvg = calculateWeightedMovingAverage(chartData.txpool.data);
 
     charts.txpool.update('active');
   }
