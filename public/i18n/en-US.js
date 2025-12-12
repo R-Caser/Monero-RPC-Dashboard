@@ -126,6 +126,14 @@ registerTranslation('en-US', {
   
   // Charts & Real-Time Stats
   'charts.title': 'Real-Time Statistics',
+  'charts.period_label': 'Period:',
+  'charts.period_realtime': 'Real-Time (Last 60 blocks)',
+  'charts.period_30days': 'Last 30 Days (Daily)',
+  'charts.period_3months': 'Last 3 Months (3-day avg)',
+  'charts.period_6months': 'Last 6 Months (Weekly avg)',
+  'charts.period_1year': 'Last Year (Weekly avg)',
+  'charts.period_5years': 'Last 5 Years (Monthly avg)',
+  'charts.period_max': 'Max (Monthly avg)',
   'charts.height': 'Height',
   'charts.hashrate': 'Hashrate',
   'charts.difficulty': 'Difficulty',

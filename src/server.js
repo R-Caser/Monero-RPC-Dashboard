@@ -1170,6 +1170,82 @@ app.get('/api/historical-data', async (req, res) => {
   }
 });
 
+// ==================== AGGREGATED STATISTICS ENDPOINTS ====================
+
+// Ottieni statistiche aggregate per un tipo specifico
+app.get('/api/aggregated-stats/:type', async (req, res) => {
+  try {
+    const { type } = req.params;
+    const limit = parseInt(req.query.limit) || 60;
+    
+    // Valida il tipo di aggregazione
+    const validTypes = ['daily', '3days', 'weekly', 'monthly'];
+    if (!validTypes.includes(type)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid aggregation type. Valid types: daily, 3days, weekly, monthly'
+      });
+    }
+    
+    const data = await db.getAggregatedStats(type, limit);
+    
+    res.json({
+      success: true,
+      type: type,
+      count: data.length,
+      data: data
+    });
+  } catch (error) {
+    console.error('❌ Errore recupero statistiche aggregate:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Ottieni progresso scansione blockchain
+app.get('/api/scan-progress', async (req, res) => {
+  try {
+    const progress = await db.getScanProgress();
+    
+    res.json({
+      success: true,
+      progress: progress
+    });
+  } catch (error) {
+    console.error('❌ Errore recupero progresso scansione:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Forza riscansione blockchain (solo admin)
+app.post('/api/rescan-blockchain', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    // Reset progresso scansione
+    await db.updateScanProgress(0, 0, 0);
+    
+    // Avvia scansione in background
+    setTimeout(() => scanBlockchainForAggregation(), 1000);
+    
+    res.json({
+      success: true,
+      message: 'Blockchain rescan started'
+    });
+  } catch (error) {
+    console.error('❌ Errore avvio riscansione:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// ==================== END AGGREGATED STATISTICS ====================
+
 // Serve il frontend
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
@@ -1347,5 +1423,280 @@ setInterval(async () => {
     console.error('❌ Errore pulizia notifiche:', error.message);
   }
 }, 24 * 60 * 60 * 1000); // Ogni 24 ore
+
+// ==================== BLOCKCHAIN SCANNER & AGGREGATION ====================
+
+// Funzione per aggregare blocchi in medie ponderate
+async function aggregateBlockData(blocks, aggregationType) {
+  if (!blocks || blocks.length === 0) return null;
+
+  let totalHashrate = 0;
+  let totalDifficulty = 0;
+  let totalTxPool = 0;
+  let count = 0;
+
+  for (const block of blocks) {
+    if (block.avg_hashrate) totalHashrate += block.avg_hashrate;
+    if (block.avg_difficulty) totalDifficulty += block.avg_difficulty;
+    if (block.avg_tx_pool_size) totalTxPool += block.avg_tx_pool_size;
+    count++;
+  }
+
+  return {
+    avg_hashrate: count > 0 ? totalHashrate / count : 0,
+    avg_difficulty: count > 0 ? totalDifficulty / count : 0,
+    avg_tx_pool_size: count > 0 ? totalTxPool / count : 0,
+    block_count: count
+  };
+}
+
+// Scanner della blockchain per aggregazione storica
+async function scanBlockchainForAggregation() {
+  try {
+    const progress = await db.getScanProgress();
+    
+    if (progress.is_initial_scan_complete) {
+      console.log('✅ Scansione iniziale già completata');
+      return;
+    }
+
+    console.log('🔍 Avvio scansione blockchain per aggregazione statistiche...');
+    
+    // Ottieni l'altezza corrente della blockchain
+    const info = await rpcClient.getInfo();
+    if (!info || !info.height) {
+      console.error('❌ Impossibile ottenere altezza blockchain');
+      return;
+    }
+
+    const currentHeight = info.height;
+    let startHeight = progress.last_scanned_height > 0 ? progress.last_scanned_height + 1 : 1;
+    
+    console.log(`📊 Scansione da blocco ${startHeight} a ${currentHeight}`);
+
+    // Scansiona a batch di 10 blocchi (ridotto per evitare sovraccarico RPC)
+    const batchSize = 10;
+    
+    while (startHeight <= currentHeight) {
+      const endHeight = Math.min(startHeight + batchSize - 1, currentHeight);
+      
+      try {
+        // Ottieni informazioni per ogni blocco nel batch SEQUENZIALMENTE (non in parallelo)
+        const blocks = [];
+        for (let h = startHeight; h <= endHeight; h++) {
+          try {
+            const block = await rpcClient.getBlockByHeight(h);
+            if (block && block.block_header) {
+              blocks.push({
+                height: h,
+                difficulty: block.block_header.difficulty || 0,
+                timestamp: block.block_header.timestamp || 0
+              });
+            }
+          } catch (err) {
+            console.error(`⚠️  Errore lettura blocco ${h}:`, err.message);
+          }
+          // Pausa di 50ms tra ogni richiesta per non sovraccaricare
+          await new Promise(resolve => setTimeout(resolve, 50));
+        }
+        
+        // Calcola hashrate per ogni blocco (difficoltà / 120 secondi target)
+        const blocksWithStats = blocks.map(b => ({
+          height: b.height,
+          difficulty: b.difficulty,
+          hashrate: b.difficulty / 120,
+          timestamp: b.timestamp
+        }));
+
+        // Aggrega i dati in base al timestamp
+        if (blocksWithStats.length > 0) {
+          await aggregateAndSaveStats(blocksWithStats);
+        }
+
+        // Aggiorna il progresso
+        await db.updateScanProgress(endHeight, progress.total_blocks_scanned + blocks.length, 0);
+        
+        console.log(`✅ Scansionati blocchi ${startHeight}-${endHeight} (${blocks.length} blocchi)`);
+        
+        startHeight = endHeight + 1;
+
+        // Pausa di 500ms tra i batch
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+      } catch (error) {
+        console.error(`❌ Errore scansione batch ${startHeight}-${endHeight}:`, error.message);
+        startHeight = endHeight + 1;
+      }
+    }
+
+    // Marca la scansione iniziale come completata
+    await db.updateScanProgress(currentHeight, currentHeight, 1);
+    console.log('✅ Scansione iniziale completata!');
+
+  } catch (error) {
+    console.error('❌ Errore scanner blockchain:', error.message);
+  }
+}
+
+// Funzione per aggregare e salvare statistiche per diversi periodi
+async function aggregateAndSaveStats(blocks) {
+  if (!blocks || blocks.length === 0) return;
+
+  // Ordina per timestamp
+  blocks.sort((a, b) => a.timestamp - b.timestamp);
+
+  // Aggrega per giorno (86400 secondi)
+  await aggregateByPeriod(blocks, 'daily', 86400);
+  
+  // Aggrega per 3 giorni (259200 secondi)
+  await aggregateByPeriod(blocks, '3days', 259200);
+  
+  // Aggrega per settimana (604800 secondi)
+  await aggregateByPeriod(blocks, 'weekly', 604800);
+  
+  // Aggrega per mese (2592000 secondi ~ 30 giorni)
+  await aggregateByPeriod(blocks, 'monthly', 2592000);
+}
+
+// Aggrega blocchi per un periodo specifico
+async function aggregateByPeriod(blocks, aggregationType, periodSeconds) {
+  const periods = new Map();
+
+  for (const block of blocks) {
+    // Calcola l'inizio del periodo per questo blocco
+    const periodStart = Math.floor(block.timestamp / periodSeconds) * periodSeconds;
+    
+    if (!periods.has(periodStart)) {
+      periods.set(periodStart, []);
+    }
+    periods.get(periodStart).push(block);
+  }
+
+  // Salva le medie per ogni periodo
+  for (const [periodStart, periodBlocks] of periods.entries()) {
+    const periodEnd = periodStart + periodSeconds;
+    
+    let totalHashrate = 0;
+    let totalDifficulty = 0;
+    let count = periodBlocks.length;
+
+    for (const block of periodBlocks) {
+      totalHashrate += block.hashrate;
+      totalDifficulty += block.difficulty;
+    }
+
+    const avgHashrate = count > 0 ? totalHashrate / count : 0;
+    const avgDifficulty = count > 0 ? totalDifficulty / count : 0;
+
+    // Converti timestamp in altezza blocco (approssimazione)
+    const periodStartHeight = periodBlocks[0].height;
+    const periodEndHeight = periodBlocks[periodBlocks.length - 1].height;
+
+    await db.saveAggregatedStat(
+      aggregationType,
+      periodStartHeight,
+      periodEndHeight,
+      avgHashrate,
+      avgDifficulty,
+      0, // tx_pool non disponibile nello storico
+      count
+    );
+  }
+}
+
+// Aggiorna aggregazioni con nuovi blocchi (ogni 10 minuti)
+async function updateAggregations() {
+  try {
+    const progress = await db.getScanProgress();
+    
+    if (!progress.is_initial_scan_complete) {
+      console.log('⏳ Scansione iniziale non ancora completata');
+      return;
+    }
+
+    const info = await rpcClient.getInfo();
+    if (!info || !info.height) return;
+
+    const currentHeight = info.height;
+    const lastScanned = progress.last_scanned_height;
+
+    if (currentHeight <= lastScanned) {
+      console.log('✅ Aggregazioni già aggiornate');
+      return;
+    }
+
+    console.log(`🔄 Aggiornamento aggregazioni da blocco ${lastScanned + 1} a ${currentHeight}`);
+
+    // Ottieni i nuovi blocchi
+    const blockPromises = [];
+    for (let h = lastScanned + 1; h <= currentHeight; h++) {
+      blockPromises.push(
+        rpcClient.getBlockByHeight(h)
+          .then(block => {
+            if (block && block.block_header) {
+              return {
+                height: h,
+                difficulty: block.block_header.difficulty || 0,
+                hashrate: (block.block_header.difficulty || 0) / 120,
+                timestamp: block.block_header.timestamp || 0
+              };
+            }
+            return null;
+          })
+          .catch(() => null)
+      );
+    }
+
+    const newBlocks = (await Promise.all(blockPromises)).filter(b => b !== null);
+
+    if (newBlocks.length > 0) {
+      await aggregateAndSaveStats(newBlocks);
+      await db.updateScanProgress(currentHeight, progress.total_blocks_scanned + newBlocks.length, 1);
+      console.log(`✅ Aggregate ${newBlocks.length} nuovi blocchi`);
+    }
+
+    // Pulisci dati aggregati vecchi secondo le regole di retention
+    await cleanupAggregatedData();
+
+  } catch (error) {
+    console.error('❌ Errore aggiornamento aggregazioni:', error.message);
+  }
+}
+
+// Pulizia dati aggregati in base alle regole di retention
+async function cleanupAggregatedData() {
+  try {
+    // Mantieni ultimi 60 record giornalieri (60 giorni)
+    await db.cleanOldAggregatedStats('daily', 60);
+    
+    // Mantieni ultimi 60 record per 3 giorni (180 giorni)
+    await db.cleanOldAggregatedStats('3days', 60);
+    
+    // Mantieni ultimi 60 record settimanali (420 giorni ~ 14 mesi)
+    await db.cleanOldAggregatedStats('weekly', 60);
+    
+    // NON eliminare dati mensili (retention infinita per 5 anni e max)
+    // await db.cleanOldAggregatedStats('monthly', 0); // 0 = non eliminare
+    
+  } catch (error) {
+    console.error('❌ Errore pulizia aggregazioni:', error.message);
+  }
+}
+
+// Avvia scanner al boot (dopo 5 secondi)
+setTimeout(async () => {
+  const progress = await db.getScanProgress();
+  if (!progress.is_initial_scan_complete) {
+    console.log('🚀 Avvio scansione iniziale blockchain...');
+    scanBlockchainForAggregation();
+  } else {
+    console.log('✅ Sistema di aggregazione già inizializzato');
+  }
+}, 5000);
+
+// Aggiorna aggregazioni ogni 10 minuti
+setInterval(updateAggregations, 10 * 60 * 1000);
+
+// ==================== END BLOCKCHAIN SCANNER ====================
 
 module.exports = { app, server, io };

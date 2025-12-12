@@ -87,6 +87,34 @@ class Database {
         )
       `;
 
+      // Tabella per le statistiche aggregate (medie ponderate per diversi periodi)
+      const createAggregatedStatsTable = `
+        CREATE TABLE IF NOT EXISTS aggregated_statistics (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          aggregation_type TEXT NOT NULL,
+          period_start INTEGER NOT NULL,
+          period_end INTEGER NOT NULL,
+          avg_hashrate REAL,
+          avg_difficulty REAL,
+          avg_tx_pool_size REAL,
+          block_count INTEGER,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(aggregation_type, period_start)
+        )
+      `;
+
+      // Tabella per tracciare il progresso della scansione blockchain
+      const createScanProgressTable = `
+        CREATE TABLE IF NOT EXISTS scan_progress (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          last_scanned_height INTEGER NOT NULL DEFAULT 0,
+          total_blocks_scanned INTEGER NOT NULL DEFAULT 0,
+          last_scan_timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+          is_initial_scan_complete INTEGER DEFAULT 0
+        )
+      `;
+
       this.db.run(createConfigTable, (err) => {
         if (err) {
           console.error('❌ Errore creazione tabella rpc_config:', err.message);
@@ -125,12 +153,33 @@ class Database {
                           reject(err);
                         } else {
                           console.log('✅ Tabella notifications creata/verificata');
-                          // Inserisci configurazione di default se non esiste
-                          this.initDefaultConfig()
-                            .then(() => this.initDefaultSettings())
-                            .then(() => this.initDefaultUser())
-                            .then(resolve)
-                            .catch(reject);
+                          
+                          // Crea tabella statistiche aggregate
+                          this.db.run(createAggregatedStatsTable, (err) => {
+                            if (err) {
+                              console.error('❌ Errore creazione tabella aggregated_statistics:', err.message);
+                              reject(err);
+                            } else {
+                              console.log('✅ Tabella aggregated_statistics creata/verificata');
+                              
+                              // Crea tabella progresso scansione
+                              this.db.run(createScanProgressTable, (err) => {
+                                if (err) {
+                                  console.error('❌ Errore creazione tabella scan_progress:', err.message);
+                                  reject(err);
+                                } else {
+                                  console.log('✅ Tabella scan_progress creata/verificata');
+                                  // Inserisci configurazione di default se non esiste
+                                  this.initDefaultConfig()
+                                    .then(() => this.initDefaultSettings())
+                                    .then(() => this.initDefaultUser())
+                                    .then(() => this.initScanProgress())
+                                    .then(resolve)
+                                    .catch(reject);
+                                }
+                              });
+                            }
+                          });
                         }
                       });
                     }
@@ -645,6 +694,128 @@ class Database {
       this.db.run(query, [], function(err) {
         if (err) reject(err);
         else resolve({ changes: this.changes });
+      });
+    });
+  }
+
+  // ==================== AGGREGATED STATISTICS ====================
+
+  // Inizializza il record di progresso scansione se non esiste
+  initScanProgress() {
+    return new Promise((resolve, reject) => {
+      const checkQuery = 'SELECT COUNT(*) as count FROM scan_progress';
+      
+      this.db.get(checkQuery, [], (err, row) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        if (row.count === 0) {
+          const insertQuery = `
+            INSERT INTO scan_progress (last_scanned_height, total_blocks_scanned, is_initial_scan_complete)
+            VALUES (0, 0, 0)
+          `;
+          this.db.run(insertQuery, [], (err) => {
+            if (err) {
+              console.error('❌ Errore inizializzazione scan_progress:', err.message);
+              reject(err);
+            } else {
+              console.log('✅ Tabella scan_progress inizializzata');
+              resolve();
+            }
+          });
+        } else {
+          resolve();
+        }
+      });
+    });
+  }
+
+  // Ottieni il progresso corrente della scansione
+  getScanProgress() {
+    return new Promise((resolve, reject) => {
+      const query = 'SELECT * FROM scan_progress ORDER BY id DESC LIMIT 1';
+      this.db.get(query, [], (err, row) => {
+        if (err) reject(err);
+        else resolve(row || { last_scanned_height: 0, total_blocks_scanned: 0, is_initial_scan_complete: 0 });
+      });
+    });
+  }
+
+  // Aggiorna il progresso della scansione
+  updateScanProgress(lastHeight, totalScanned, isComplete = 0) {
+    return new Promise((resolve, reject) => {
+      const query = `
+        UPDATE scan_progress 
+        SET last_scanned_height = ?,
+            total_blocks_scanned = ?,
+            is_initial_scan_complete = ?,
+            last_scan_timestamp = CURRENT_TIMESTAMP
+        WHERE id = 1
+      `;
+      this.db.run(query, [lastHeight, totalScanned, isComplete], function(err) {
+        if (err) reject(err);
+        else resolve({ changes: this.changes });
+      });
+    });
+  }
+
+  // Salva o aggiorna una statistica aggregata
+  saveAggregatedStat(type, periodStart, periodEnd, avgHashrate, avgDifficulty, avgTxPool, blockCount) {
+    return new Promise((resolve, reject) => {
+      const query = `
+        INSERT INTO aggregated_statistics 
+        (aggregation_type, period_start, period_end, avg_hashrate, avg_difficulty, avg_tx_pool_size, block_count)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(aggregation_type, period_start) 
+        DO UPDATE SET
+          period_end = excluded.period_end,
+          avg_hashrate = excluded.avg_hashrate,
+          avg_difficulty = excluded.avg_difficulty,
+          avg_tx_pool_size = excluded.avg_tx_pool_size,
+          block_count = excluded.block_count,
+          updated_at = CURRENT_TIMESTAMP
+      `;
+      this.db.run(query, [type, periodStart, periodEnd, avgHashrate, avgDifficulty, avgTxPool, blockCount], function(err) {
+        if (err) reject(err);
+        else resolve({ id: this.lastID });
+      });
+    });
+  }
+
+  // Ottieni statistiche aggregate per tipo e range temporale
+  getAggregatedStats(type, limit = 60) {
+    return new Promise((resolve, reject) => {
+      const query = `
+        SELECT * FROM aggregated_statistics 
+        WHERE aggregation_type = ?
+        ORDER BY period_start DESC
+        LIMIT ?
+      `;
+      this.db.all(query, [type, limit], (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      });
+    });
+  }
+
+  // Pulisci statistiche aggregate vecchie in base al tipo
+  cleanOldAggregatedStats(type, keepCount) {
+    return new Promise((resolve, reject) => {
+      const query = `
+        DELETE FROM aggregated_statistics 
+        WHERE aggregation_type = ?
+        AND id NOT IN (
+          SELECT id FROM aggregated_statistics 
+          WHERE aggregation_type = ?
+          ORDER BY period_start DESC 
+          LIMIT ?
+        )
+      `;
+      this.db.run(query, [type, type, keepCount], function(err) {
+        if (err) reject(err);
+        else resolve({ deleted: this.changes });
       });
     });
   }

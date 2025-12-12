@@ -7,6 +7,8 @@ let charts = {
   txpool: null
 };
 
+let currentPeriod = 'realtime'; // Periodo corrente selezionato
+
 // Dati storici per i grafici
 const chartData = {
   hashrate: {
@@ -33,6 +35,175 @@ const chartData = {
 
 const MAX_DATA_POINTS = 60; // Mantieni ultimi 60 punti (5 minuti a 5 secondi)
 const MOVING_AVG_WINDOW = 10; // Finestra per media mobile
+
+// Mappa dei tipi di aggregazione per periodo
+const PERIOD_TO_AGGREGATION = {
+  '30days': 'daily',
+  '3months': '3days',
+  '6months': 'weekly',
+  '1year': 'weekly',
+  '5years': 'monthly',
+  'max': 'monthly'
+};
+
+// Funzione per cambiare il periodo di visualizzazione
+async function changePeriod(period) {
+  currentPeriod = period;
+  console.log(`📅 Cambio periodo a: ${period}`);
+  
+  const periodInfo = document.getElementById('periodInfo');
+  
+  if (period === 'realtime') {
+    // Modalità real-time: carica dati storici recenti
+    periodInfo.textContent = 'Last 60 validated blocks';
+    await loadHistoricalChartData();
+  } else {
+    // Modalità aggregata: carica medie aggregate
+    const aggregationType = PERIOD_TO_AGGREGATION[period];
+    
+    // Calcola il limite basato sul periodo
+    let limit = 60;
+    let infoText = '';
+    
+    switch(period) {
+      case '30days':
+        limit = 60; // Ultimi 60 giorni
+        infoText = 'Daily averages for last 60 days';
+        break;
+      case '3months':
+        limit = 60; // Ultimi 60 record (180 giorni)
+        infoText = '3-day averages for last 180 days';
+        break;
+      case '6months':
+        limit = 60; // Ultimi 60 record (420 giorni)
+        infoText = 'Weekly averages for last 60 weeks';
+        break;
+      case '1year':
+        limit = 60; // Ultimi 60 record (420 giorni)
+        infoText = 'Weekly averages for last year';
+        break;
+      case '5years':
+        limit = 60; // Ultimi 60 mesi (5 anni)
+        infoText = 'Monthly averages for last 5 years';
+        break;
+      case 'max':
+        limit = 1000; // Tutto lo storico mensile
+        infoText = 'Monthly averages since blockchain start';
+        break;
+    }
+    
+    periodInfo.textContent = infoText;
+    await loadAggregatedChartData(aggregationType, limit);
+  }
+}
+
+// Funzione per caricare dati aggregati
+async function loadAggregatedChartData(aggregationType, limit = 60) {
+  try {
+    const response = await fetch(`/api/aggregated-stats/${aggregationType}?limit=${limit}`);
+    const result = await response.json();
+    
+    if (result.success && result.data && result.data.length > 0) {
+      console.log(`📊 Caricati ${result.data.length} punti aggregati (${aggregationType})`);
+      
+      // Inverti l'ordine per avere i più vecchi prima
+      const aggregatedData = result.data.reverse();
+      
+      // Pulisci i dati esistenti
+      chartData.hashrate.labels = [];
+      chartData.hashrate.data = [];
+      chartData.hashrate.movingAvg = [];
+      
+      chartData.difficulty.labels = [];
+      chartData.difficulty.data = [];
+      chartData.difficulty.movingAvg = [];
+      
+      chartData.txpool.labels = [];
+      chartData.txpool.data = [];
+      chartData.txpool.movingAvg = [];
+      
+      // Popola con dati aggregati
+      aggregatedData.forEach(record => {
+        const label = formatAggregatedLabel(record, aggregationType);
+        
+        // Hashrate
+        chartData.hashrate.labels.push(label);
+        chartData.hashrate.data.push(record.avg_hashrate || 0);
+        
+        // Difficulty
+        chartData.difficulty.labels.push(label);
+        chartData.difficulty.data.push(record.avg_difficulty || 0);
+        
+        // TX Pool (non disponibile nello storico aggregato)
+        chartData.txpool.labels.push(label);
+        chartData.txpool.data.push(record.avg_tx_pool_size || 0);
+      });
+      
+      // Per i dati aggregati, la media mobile è uguale ai dati (già mediati)
+      chartData.hashrate.movingAvg = [...chartData.hashrate.data];
+      chartData.difficulty.movingAvg = [...chartData.difficulty.data];
+      chartData.txpool.movingAvg = [...chartData.txpool.data];
+      
+      // Aggiorna i grafici
+      updateAllCharts();
+      
+      console.log('✅ Grafici aggiornati con dati aggregati');
+      return true;
+    } else {
+      console.warn('⚠️  Nessun dato aggregato disponibile');
+      return false;
+    }
+  } catch (error) {
+    console.error('❌ Errore caricamento dati aggregati:', error);
+    return false;
+  }
+}
+
+// Formatta le label per i dati aggregati
+function formatAggregatedLabel(record, aggregationType) {
+  if (aggregationType === 'daily' || aggregationType === '3days') {
+    // Usa il range di blocchi
+    return `#${record.period_start}-${record.period_end}`;
+  } else if (aggregationType === 'weekly') {
+    // Usa il range di blocchi
+    return `#${record.period_start}-${record.period_end}`;
+  } else if (aggregationType === 'monthly') {
+    // Usa solo il blocco iniziale per mesi
+    return `#${record.period_start}`;
+  }
+  return `#${record.period_start}`;
+}
+
+// Funzione per aggiornare tutti i grafici
+function updateAllCharts() {
+  if (charts.hashrate) {
+    charts.hashrate.data.labels = chartData.hashrate.labels;
+    charts.hashrate.data.datasets[0].data = chartData.hashrate.data;
+    charts.hashrate.data.datasets[1].data = chartData.hashrate.movingAvg;
+    charts.hashrate.update('none');
+  }
+  
+  if (charts.difficulty) {
+    charts.difficulty.data.labels = chartData.difficulty.labels;
+    charts.difficulty.data.datasets[0].data = chartData.difficulty.data;
+    charts.difficulty.data.datasets[1].data = chartData.difficulty.movingAvg;
+    charts.difficulty.update('none');
+  }
+  
+  if (charts.txpool) {
+    charts.txpool.data.labels = chartData.txpool.labels;
+    charts.txpool.data.datasets[0].data = chartData.txpool.data;
+    charts.txpool.data.datasets[1].data = chartData.txpool.movingAvg;
+    charts.txpool.update('none');
+  }
+  
+  if (charts.connections) {
+    charts.connections.data.labels = chartData.connections.labels;
+    charts.connections.data.datasets[0].data = chartData.connections.incoming;
+    charts.connections.data.datasets[1].data = chartData.connections.outgoing;
+    charts.connections.update('none');
+  }
+}
 
 // Funzione per calcolare la media ponderata (weighted moving average)
 function calculateWeightedMovingAverage(data, windowSize = MOVING_AVG_WINDOW) {
@@ -417,7 +588,8 @@ function initCharts() {
 function updateCharts(stats) {
   if (!stats) return;
   
-  // Aggiorna i grafici SOLO quando viene rilevato un nuovo blocco
+  // Aggiorna i grafici SOLO in modalità real-time e quando viene rilevato un nuovo blocco
+  if (currentPeriod !== 'realtime') return;
   if (!stats.isNewBlock) return;
 
   // Usa il numero di blocco come etichetta

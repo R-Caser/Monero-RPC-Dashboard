@@ -214,6 +214,21 @@
           <span class="toggle-icon">▼</span>
         </div>
         <div class="card-content" id="chartsContent">
+          <!-- Period Selector -->
+          <div class="period-selector">
+            <label for="chartPeriod" data-i18n="charts.period_label">Period:</label>
+            <select id="chartPeriod" onchange="changePeriod(this.value)">
+              <option value="realtime" data-i18n="charts.period_realtime">Real-Time (Last 60 blocks)</option>
+              <option value="30days" data-i18n="charts.period_30days">Last 30 Days (Daily)</option>
+              <option value="3months" data-i18n="charts.period_3months">Last 3 Months (3-day avg)</option>
+              <option value="6months" data-i18n="charts.period_6months">Last 6 Months (Weekly avg)</option>
+              <option value="1year" data-i18n="charts.period_1year">Last Year (Weekly avg)</option>
+              <option value="5years" data-i18n="charts.period_5years">Last 5 Years (Monthly avg)</option>
+              <option value="max" data-i18n="charts.period_max">Max (Monthly avg)</option>
+            </select>
+            <span id="periodInfo" class="period-info"></span>
+          </div>
+
           <!-- Real-time Stats Cards -->
           <div class="realtime-stats-grid">
             <div class="stat-card">
