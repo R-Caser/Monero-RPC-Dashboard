@@ -243,8 +243,11 @@ function initCharts() {
 // Aggiorna i grafici con nuovi dati
 function updateCharts(stats) {
   if (!stats) return;
+  
+  // Aggiorna i grafici SOLO quando viene rilevato un nuovo blocco
+  if (!stats.isNewBlock) return;
 
-  // Usa sempre il numero di blocco come etichetta per una migliore visualizzazione
+  // Usa il numero di blocco come etichetta
   const label = `#${stats.height}`;
 
   // Aggiorna Hashrate
@@ -257,8 +260,7 @@ function updateCharts(stats) {
       chartData.hashrate.data.shift();
     }
 
-    // Usa animazione se è un nuovo blocco
-    charts.hashrate.update(stats.isNewBlock ? 'active' : 'none');
+    charts.hashrate.update('active');
   }
 
   // Aggiorna Connessioni
@@ -273,7 +275,7 @@ function updateCharts(stats) {
       chartData.connections.outgoing.shift();
     }
 
-    charts.connections.update(stats.isNewBlock ? 'active' : 'none');
+    charts.connections.update('active');
   }
 
   // Aggiorna Difficoltà
@@ -286,7 +288,7 @@ function updateCharts(stats) {
       chartData.difficulty.data.shift();
     }
 
-    charts.difficulty.update(stats.isNewBlock ? 'active' : 'none');
+    charts.difficulty.update('active');
   }
 
   // Aggiorna Transaction Pool
@@ -299,11 +301,11 @@ function updateCharts(stats) {
       chartData.txpool.data.shift();
     }
 
-    charts.txpool.update(stats.isNewBlock ? 'active' : 'none');
+    charts.txpool.update('active');
   }
   
-  // Se è un nuovo blocco, mostra una notifica toast
-  if (stats.isNewBlock && typeof showToast === 'function') {
+  // Mostra notifica toast per nuovo blocco
+  if (typeof showToast === 'function') {
     showToast(`🆕 Blocco ${stats.height} | TX: ${stats.txPoolSize}`, 'info');
   }
 }
