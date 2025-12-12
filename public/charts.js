@@ -244,17 +244,8 @@ function initCharts() {
 function updateCharts(stats) {
   if (!stats) return;
 
-  // Usa il numero di blocco come etichetta se è un nuovo blocco, altrimenti usa timestamp
-  let label;
-  if (stats.isNewBlock) {
-    label = `Block ${stats.height}`;
-  } else {
-    label = new Date(stats.timestamp).toLocaleTimeString('it-IT', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    });
-  }
+  // Usa sempre il numero di blocco come etichetta per una migliore visualizzazione
+  const label = `#${stats.height}`;
 
   // Aggiorna Hashrate
   if (charts.hashrate) {
@@ -313,7 +304,7 @@ function updateCharts(stats) {
   
   // Se è un nuovo blocco, mostra una notifica toast
   if (stats.isNewBlock && typeof showToast === 'function') {
-    showToast(`🆕 Nuovo blocco: ${stats.height} | TX: ${stats.txPoolSize}`, 'info');
+    showToast(`🆕 Blocco ${stats.height} | TX: ${stats.txPoolSize}`, 'info');
   }
 }
 
