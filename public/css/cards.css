@@ -101,7 +101,7 @@
 }
 
 .card:not(.collapsed) .card-preview {
-  opacity: 0;
+  opacity: 1; /* Mantieni visibile anche quando aperto */
 }
 
 .card-content {

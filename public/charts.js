@@ -122,10 +122,19 @@ async function loadHistoricalChartData() {
         chartData.txpool.data.push(block.tx_pool_size);
       });
       
-      // Calcola le medie ponderate
-      chartData.hashrate.movingAvg = calculateWeightedMovingAverage(chartData.hashrate.data);
-      chartData.difficulty.movingAvg = calculateWeightedMovingAverage(chartData.difficulty.data);
-      chartData.txpool.movingAvg = calculateWeightedMovingAverage(chartData.txpool.data);
+      // Calcola le medie ponderate e aggiorna gli array esistenti
+      const hashrateAvg = calculateWeightedMovingAverage(chartData.hashrate.data);
+      const difficultyAvg = calculateWeightedMovingAverage(chartData.difficulty.data);
+      const txpoolAvg = calculateWeightedMovingAverage(chartData.txpool.data);
+      
+      chartData.hashrate.movingAvg.length = 0;
+      chartData.hashrate.movingAvg.push(...hashrateAvg);
+      
+      chartData.difficulty.movingAvg.length = 0;
+      chartData.difficulty.movingAvg.push(...difficultyAvg);
+      
+      chartData.txpool.movingAvg.length = 0;
+      chartData.txpool.movingAvg.push(...txpoolAvg);
       
       // Aggiorna i grafici se sono già inizializzati
       if (charts.hashrate) {
@@ -426,8 +435,10 @@ function updateCharts(stats) {
       chartData.hashrate.movingAvg.shift();
     }
     
-    // Ricalcola la media ponderata
-    chartData.hashrate.movingAvg = calculateWeightedMovingAverage(chartData.hashrate.data);
+    // Ricalcola la media ponderata e aggiorna l'array esistente
+    const newAvg = calculateWeightedMovingAverage(chartData.hashrate.data);
+    chartData.hashrate.movingAvg.length = 0;
+    chartData.hashrate.movingAvg.push(...newAvg);
 
     charts.hashrate.update('active');
   }
@@ -458,8 +469,10 @@ function updateCharts(stats) {
       chartData.difficulty.movingAvg.shift();
     }
     
-    // Ricalcola la media ponderata
-    chartData.difficulty.movingAvg = calculateWeightedMovingAverage(chartData.difficulty.data);
+    // Ricalcola la media ponderata e aggiorna l'array esistente
+    const newDiffAvg = calculateWeightedMovingAverage(chartData.difficulty.data);
+    chartData.difficulty.movingAvg.length = 0;
+    chartData.difficulty.movingAvg.push(...newDiffAvg);
 
     charts.difficulty.update('active');
   }
@@ -475,8 +488,10 @@ function updateCharts(stats) {
       chartData.txpool.movingAvg.shift();
     }
     
-    // Ricalcola la media ponderata
-    chartData.txpool.movingAvg = calculateWeightedMovingAverage(chartData.txpool.data);
+    // Ricalcola la media ponderata e aggiorna l'array esistente
+    const newTxAvg = calculateWeightedMovingAverage(chartData.txpool.data);
+    chartData.txpool.movingAvg.length = 0;
+    chartData.txpool.movingAvg.push(...newTxAvg);
 
     charts.txpool.update('active');
   }
